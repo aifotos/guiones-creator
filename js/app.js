@@ -1280,6 +1280,11 @@
       : estado.conectado ? `✅ Conectado con ${estado.nombre || "tu Telegram"}.` : 'El bot está listo, falta conectarlo a tu Telegram:';
     $('avisos-estado').className = `avisos-estado ${estado.conectado ? 'conectado' : ''}`;
     $('avisos-pasos').hidden = !estado.token || estado.conectado;
+    $('avisos-abrir-bot').hidden = !estado.bot || estado.conectado;
+    if (estado.bot) {
+      $('avisos-abrir-bot').href = `https://t.me/${estado.bot}?start=conectar`;
+      $('avisos-bot-nombre').textContent = ` (@${estado.bot})`;
+    }
     $('avisos-conectar').hidden = !estado.token;
     $('avisos-conectar').textContent = estado.conectado ? 'Conectar otro Telegram' : 'Conectar Telegram';
     $('avisos-prueba').hidden = !estado.conectado;

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guiones Creator · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161239">
-  <link rel="stylesheet" href="css/app.css?v=202610161239">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161251">
+  <link rel="stylesheet" href="css/app.css?v=202610161251">
 </head>
 <body>
   <header class="barra">
@@ -197,10 +197,11 @@
       <p class="dialogo-ayuda">Te llega un mensaje de Telegram cuando un cliente te escribe, cambia o aprueba un guion, aunque no tengas la app abierta.</p>
       <p class="avisos-estado" id="avisos-estado">Comprobando…</p>
       <ol class="avisos-pasos" id="avisos-pasos" hidden>
-        <li>Abre Telegram en tu celular y busca tu bot (el que creaste con @BotFather).</li>
-        <li>Pulsa <b>Iniciar</b> o escríbele «hola».</li>
+        <li>Pulsa <b>Abrir mi bot en Telegram</b><span id="avisos-bot-nombre"></span>. Ojo: es tu bot, no BotFather.</li>
+        <li>En ese chat, toca <b>Iniciar</b> (o escribe «hola»).</li>
         <li>Vuelve aquí y pulsa <b>Conectar Telegram</b>.</li>
       </ol>
+      <a class="boton boton-telegram" id="avisos-abrir-bot" href="#" target="_blank" rel="noopener" hidden>Abrir mi bot en Telegram</a>
       <p class="acceso-error" id="avisos-error" role="alert"></p>
       <div class="dialogo-acciones">
         <button class="boton-texto peligro" type="button" id="avisos-desconectar" hidden>Desconectar</button>
@@ -273,13 +274,13 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161239"></script>
-  <script src="js/guion.js?v=202610161239"></script>
-  <script src="js/almacen.js?v=202610161239"></script>
-  <script src="js/sugerencias.js?v=202610161239"></script>
-  <script src="js/diferencias.js?v=202610161239"></script>
-  <script src="js/chat.js?v=202610161239"></script>
-  <script src="js/vista.js?v=202610161239"></script>
-  <script src="js/app.js?v=202610161239"></script>
+  <script src="js/config.js?v=202610161251"></script>
+  <script src="js/guion.js?v=202610161251"></script>
+  <script src="js/almacen.js?v=202610161251"></script>
+  <script src="js/sugerencias.js?v=202610161251"></script>
+  <script src="js/diferencias.js?v=202610161251"></script>
+  <script src="js/chat.js?v=202610161251"></script>
+  <script src="js/vista.js?v=202610161251"></script>
+  <script src="js/app.js?v=202610161251"></script>
 </body>
 </html>

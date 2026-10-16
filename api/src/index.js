@@ -353,9 +353,15 @@ async function avisar(env, html) {
 const enlaceGuion = (env, id, extra = '') => `${env.SITIO}#g:${id}${extra}`;
 
 async function estadoAvisos(env) {
+  // El usuario del bot (@algo_bot), para poder abrirlo directamente desde el panel.
+  let bot = null;
+  if (env.TELEGRAM_TOKEN) {
+    try { bot = (await telegram(env, 'getMe')).username; } catch { bot = null; }
+  }
   return json({
     telegram: {
       token: !!env.TELEGRAM_TOKEN,
+      bot,
       conectado: !!(await ajuste(env, 'telegram_chat')),
       nombre: await ajuste(env, 'telegram_nombre'),
     },
@@ -367,7 +373,7 @@ async function conectarTelegram(env) {
   if (!env.TELEGRAM_TOKEN) throw new ErrorHttp(400, 'Falta el token del bot en Cloudflare');
   const mensajes = await telegram(env, 'getUpdates', { allowed_updates: ['message'] });
   const ultimo = [...mensajes].reverse().find((u) => u.message?.chat?.id);
-  if (!ultimo) throw new ErrorHttp(404, 'Todavía no le has escrito al bot. Ábrelo en Telegram, pulsa Iniciar (o escribe "hola") y vuelve a intentarlo.');
+  if (!ultimo) throw new ErrorHttp(404, 'Tu bot todavía no ha recibido ningún mensaje. Pulsa "Abrir mi bot en Telegram", toca Iniciar (o escribe "hola") en ese chat y vuelve a pulsar Conectar.');
   const chat = ultimo.message.chat;
   const nombre = [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.title || chat.username || 'Telegram';
   await env.DB.batch([

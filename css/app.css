@@ -1263,3 +1263,14 @@ body.chat-minimizado .chat-abrir { display: grid; }
   font-size: 13px;
   cursor: pointer;
 }
+
+.boton-telegram {
+  justify-self: start;
+  text-decoration: none;
+  background: #229ED9;
+  border-color: #229ED9;
+  color: #fff;
+  font-weight: 600;
+}
+.boton-telegram:hover { background: #1C8CC2; border-color: #1C8CC2; }
+.boton-telegram[hidden] { display: none; }
