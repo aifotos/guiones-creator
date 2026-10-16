@@ -12,6 +12,8 @@
 //   DELETE /api/guiones/:id
 //   POST   /api/guiones/:id/comentarios { texto }  responder al cliente
 //   GET    /api/guiones/:id/cambios     qué cambió el cliente (antes y después)
+//   GET    /api/guiones/:id/versiones   historial: copias anteriores del guion
+//   POST   /api/guiones/:id/desbloquear quita la aprobación para poder editarlo
 //   GET    /api/avisos                  estado de los avisos por Telegram
 //   POST   /api/avisos/telegram/conectar  conecta el chat que acaba de escribir al bot
 //   POST   /api/avisos/telegram/prueba    manda un aviso de prueba
@@ -259,7 +261,17 @@ async function guardarGuion(peticion, env, id) {
   const v = validarGuion(d);
   const ahora = Date.now();
   const previa = await env.DB.prepare('SELECT * FROM guiones WHERE id = ?').bind(id).first();
-  if (previa && previa.editado_por === 'cliente' && previa.version === Number(d.version)) await copiaDe(env, previa).run();
+  if (previa && previa.aprobado) throw new ErrorHttp(423, 'El cliente aprobó este guion: desbloquéalo para poder editarlo');
+  // Copia para el historial: si lo último lo hizo el cliente, si se pide (al restaurar
+  // una versión) o si hace más de 10 minutos de la última copia.
+  if (previa && previa.version === Number(d.version)) {
+    const ultima = await env.DB.prepare('SELECT MAX(creado) AS creado FROM versiones WHERE guion_id = ?').bind(id).first();
+    const hace = ahora - (ultima?.creado || 0);
+    if (previa.editado_por === 'cliente' || d.forzarCopia || hace > COPIA_CADA_MS) {
+      await copiaDe(env, previa).run();
+      await podarVersiones(env, id);
+    }
+  }
   // Solo guarda si nadie lo cambió desde la versión que tenía quien guarda.
   const r = await env.DB.prepare(
     "UPDATE guiones SET titulo = ?, formato = ?, contenido = ?, version = version + 1, editado_por = 'admin', actualizado = ? WHERE id = ? AND version = ?",
@@ -272,6 +284,36 @@ async function guardarGuion(peticion, env, id) {
   const fila = await env.DB.prepare('SELECT * FROM guiones WHERE id = ?').bind(id).first();
   await env.DB.prepare('UPDATE clientes SET actualizado = ? WHERE id = ?').bind(ahora, fila.cliente_id).run();
   return json(guionDeFila(fila, await comentariosDe(env, id)));
+}
+
+const COPIA_CADA_MS = 10 * 60 * 1000; // mientras escribes, una copia cada 10 minutos como mucho
+const MAX_VERSIONES = 150;            // por guion; las más antiguas se borran
+
+// Deja solo las copias más recientes de un guion.
+function podarVersiones(env, id) {
+  return env.DB.prepare('DELETE FROM versiones WHERE guion_id = ?1 AND id NOT IN (SELECT id FROM versiones WHERE guion_id = ?1 ORDER BY version DESC, creado DESC LIMIT ?2)')
+    .bind(id, MAX_VERSIONES).run();
+}
+
+async function listarVersiones(env, id) {
+  const { results } = await env.DB.prepare('SELECT * FROM versiones WHERE guion_id = ? ORDER BY version DESC, creado DESC LIMIT ?').bind(id, MAX_VERSIONES).all();
+  return json({
+    versiones: results.map((v) => ({
+      id: v.id,
+      version: v.version,
+      autor: v.autor,
+      fecha: v.creado,
+      titulo: v.titulo,
+      formato: v.formato,
+      bloques: JSON.parse(v.contenido || '{}').bloques || [],
+    })),
+  });
+}
+
+async function desbloquear(env, id) {
+  const r = await env.DB.prepare('UPDATE guiones SET aprobado = NULL WHERE id = ?').bind(id).run();
+  if (!r.meta.changes) throw new ErrorHttp(404, 'Ese guion no existe');
+  return json({ ok: true });
 }
 
 // Guarda una copia del guion tal como está, firmada por quien lo dejó así
@@ -439,6 +481,7 @@ async function vistaCliente(env, token) {
 async function clienteEdita(peticion, env, ctx, token, id) {
   const cliente = await clienteDelLink(env, token);
   const fila = await guionDelCliente(env, cliente, id);
+  if (fila.aprobado) throw new ErrorHttp(423, 'Ya aprobaste este guion. Si necesitas algún cambio, escríbele a aifotos por el chat.');
   const d = await leerCuerpo(peticion);
   if (Number(d.version) !== fila.version) {
     return json({ error: 'Este guion cambió en otro sitio', guion: paraCliente(guionDeFila(fila, await comentariosDe(env, id))) }, 409);
@@ -447,6 +490,8 @@ async function clienteEdita(peticion, env, ctx, token, id) {
   // la tuya, o, si el guion es de antes de existir las copias, cómo estaba hasta ahora.
   const hayPuntoDePartida = await env.DB.prepare("SELECT 1 FROM versiones WHERE guion_id = ? AND autor = 'admin' LIMIT 1").bind(id).first();
   if (fila.editado_por !== 'cliente' || !hayPuntoDePartida) await copiaDe(env, fila, 'admin').run();
+  else await copiaDe(env, fila).run(); // cada "Listo" del cliente queda en el historial
+  await podarVersiones(env, id);
   const nuevos = new Map(limpiarBloques(d.bloques || []).map((b) => [b.id, b.texto]));
   const contenido = JSON.parse(fila.contenido || '{}');
   contenido.bloques = (contenido.bloques || []).map((b) => (nuevos.has(b.id) ? { ...b, texto: nuevos.get(b.id) } : b));
@@ -532,6 +577,8 @@ async function atender(peticion, env, ctx) {
     if (ruta === '/api/guiones' && metodo === 'POST') return crearGuion(peticion, env);
     if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)\/comentarios$/)) && metodo === 'POST') return comentarAdmin(peticion, env, m[1]);
     if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)\/cambios$/)) && metodo === 'GET') return cambiosDelCliente(env, m[1]);
+    if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)\/versiones$/)) && metodo === 'GET') return listarVersiones(env, m[1]);
+    if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)\/desbloquear$/)) && metodo === 'POST') return desbloquear(env, m[1]);
     if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)$/))) {
       if (metodo === 'PUT') return guardarGuion(peticion, env, m[1]);
       if (metodo === 'DELETE') return borrarGuion(env, m[1]);

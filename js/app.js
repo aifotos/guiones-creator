@@ -126,6 +126,12 @@
       pintarLista();
     } catch (e) {
       if (e.estado === 409) resolverConflicto(guion, e.datos.guion);
+      else if (e.estado === 423) {
+        estadoGuardado('No guardado: el cliente lo aprobó', true);
+        alert('El cliente acaba de aprobar este guión, así que quedó bloqueado y tu último cambio no se guardó. Desbloquéalo si necesitas cambiar algo.');
+        guion.aprobado = guion.aprobado || Date.now();
+        refrescarAhora();
+      }
       else if (e.estado !== 401) {
         estadoGuardado('Sin conexión · reintentando…', true);
         temporizador = setTimeout(() => guardarYa(guion), 4000);
@@ -198,7 +204,12 @@
     const caja = $('doc-avisos');
     caja.replaceChildren();
     let aviso = null;
-    if (actual.aprobado) aviso = elemento('p', 'aviso-doc aprobado', `✓ El cliente aprobó este guión el ${fechaHora(actual.aprobado)}. `);
+    if (actual.aprobado) {
+      aviso = elemento('p', 'aviso-doc aprobado', `🔒 El cliente aprobó este guión el ${fechaHora(actual.aprobado)} y está bloqueado para que nadie lo cambie por error. `);
+      const desbloquear = elemento('button', 'boton-texto', 'Desbloquear para editar');
+      desbloquear.addEventListener('click', desbloquearGuion);
+      aviso.append(desbloquear, ' ');
+    }
     else if (actual.editado_por === 'cliente') aviso = elemento('p', 'aviso-doc editado', `✎ El cliente hizo cambios en este guión el ${fechaHora(actual.actualizado)}. Todavía no lo ha aprobado. `);
     if (!aviso) return;
     if (actual.editado_por === 'cliente') {
@@ -489,6 +500,29 @@
     }
     pintarPersonajes();
     pintarDatos();
+    pintarBloqueo();
+  }
+
+  // ---------- Guion aprobado: bloqueado ----------
+
+  // Con el guion aprobado el editor queda solo para mirar (inert: no se puede
+  // tocar ni escribir) hasta que lo desbloquees.
+  function pintarBloqueo() {
+    const bloqueado = !!actual.aprobado;
+    $('modo-editar').inert = bloqueado;
+    $('modo-editar').classList.toggle('bloqueado', bloqueado);
+    $('formato').disabled = bloqueado;
+  }
+
+  async function desbloquearGuion() {
+    if (!confirm('Si lo desbloqueas y cambias algo, el cliente tendrá que volver a aprobarlo. ¿Desbloquear?')) return;
+    const guion = actual;
+    if ((await intentar(() => Almacen.desbloquear(guion), 'No se pudo desbloquear')) === null) return;
+    if (guion !== actual) return;
+    pintarAvisos();
+    pintarBloqueo();
+    pintarLista();
+    avisar('Guión desbloqueado: ya puedes editarlo');
   }
 
   function ajustarAltura(area) {
@@ -985,6 +1019,96 @@
     pintarLectura();
   });
 
+  // ---------- Historial de versiones ----------
+
+  let historial = [];       // versiones anteriores (la más reciente primero)
+  let elegida = null;       // versión que se está mirando
+
+  async function abrirHistorial() {
+    if (hayCambiosSinGuardar()) await guardarYa();
+    const guion = actual;
+    $('historial-lista').replaceChildren(elemento('li', 'lista-vacia', 'Cargando versiones…'));
+    $('historial-lectura').replaceChildren();
+    $('historial-comparar').checked = false;
+    $('dialogo-historial').showModal();
+    try {
+      historial = await Almacen.versiones(guion.id);
+    } catch (e) {
+      $('historial-lista').replaceChildren(elemento('li', 'lista-vacia', `No se pudo cargar: ${e.message}`));
+      return;
+    }
+    if (guion !== actual) return;
+    pintarHistorial();
+    elegirVersion(null);
+  }
+
+  function pintarHistorial() {
+    const lista = $('historial-lista');
+    lista.replaceChildren();
+    const ahora = { id: null, autor: actual.editado_por || 'admin', fecha: actual.actualizado, bloques: actual.bloques, actual: true };
+    for (const v of [ahora, ...historial]) {
+      const li = elemento('li');
+      const boton = elemento('button', `historial-item${(elegida?.id ?? null) === v.id ? ' activo' : ''}`);
+      boton.dataset.id = v.id ?? '';
+      const quien = v.autor === 'cliente' ? (Almacen.obtenerCliente(actual.cliente_id)?.nombre || 'Cliente') : 'Tú';
+      boton.append(
+        elemento('span', 'historial-fecha', v.actual ? 'Versión actual' : fechaHora(v.fecha)),
+        elemento('span', `historial-autor de-${v.autor}`, v.actual ? `Último cambio: ${quien}` : `Editado por ${quien}`),
+        elemento('span', 'lista-info', `${Guion.estadisticas(v.bloques).palabras} palabras`),
+      );
+      boton.addEventListener('click', () => elegirVersion(v.actual ? null : v));
+      li.append(boton);
+      lista.append(li);
+    }
+    if (!historial.length) lista.append(elemento('li', 'lista-vacia', 'Todavía no hay versiones anteriores. Se irán guardando a medida que tú o el cliente hagáis cambios.'));
+  }
+
+  function elegirVersion(v) {
+    elegida = v;
+    $('historial-lista').querySelectorAll('.historial-item').forEach((b) => b.classList.toggle('activo', b.dataset.id === (v?.id ?? '')));
+    $('historial-restaurar').hidden = !v;
+    $('historial-comparar').closest('label').hidden = !v;
+    pintarVistaHistorial();
+  }
+
+  function pintarVistaHistorial() {
+    const comparar = !!elegida && $('historial-comparar').checked;
+    $('historial-leyenda').hidden = !comparar;
+    if (!elegida) return Vista.render(actual, $('historial-lectura'));
+    const version = { ...actual, titulo: elegida.titulo, formato: elegida.formato, bloques: elegida.bloques };
+    if (comparar) {
+      // Sobre el guion de hoy, marca lo que ha cambiado desde esa versión.
+      Vista.render(actual, $('historial-lectura'), { antes: new Map(elegida.bloques.map((b) => [b.id, b.texto])) });
+    } else {
+      Vista.render(version, $('historial-lectura'));
+    }
+  }
+
+  async function restaurarVersion() {
+    if (!elegida) return;
+    const aviso = actual.aprobado ? '\n\nEl guión está aprobado: al restaurar se quitará la aprobación y el cliente tendrá que volver a aprobarlo.' : '';
+    if (!confirm(`¿Volver a la versión del ${fechaHora(elegida.fecha)}? La versión actual quedará guardada en el historial por si la necesitas.${aviso}`)) return;
+    const guion = actual;
+    const version = elegida;
+    const hecho = await intentar(async () => {
+      if (guion.aprobado) await Almacen.desbloquear(guion);
+      guion.titulo = version.titulo;
+      guion.formato = version.formato;
+      guion.bloques = structuredClone(version.bloques);
+      await Almacen.guardar(guion, { forzarCopia: true });
+      return true;
+    }, 'No se pudo restaurar la versión');
+    if (!hecho) return;
+    $('dialogo-historial').close();
+    if (guion === actual) abrir(guion.id);
+    avisar('Versión restaurada');
+  }
+
+  $('abrir-historial').addEventListener('click', abrirHistorial);
+  $('historial-cerrar').addEventListener('click', () => $('dialogo-historial').close());
+  $('historial-comparar').addEventListener('change', pintarVistaHistorial);
+  $('historial-restaurar').addEventListener('click', restaurarVersion);
+
   // ---------- Nuevo guión ----------
 
   function abrirNuevo() {
@@ -1176,6 +1300,7 @@
           antes.aprobado = nuevo.aprobado;
           Almacen.reemplazar(antes);
           pintarAvisos();
+          pintarBloqueo();
           pintarComentariosDoc();
           marcarVisto(antes);
         } else if (!hayCambiosSinGuardar()) {
@@ -1193,6 +1318,10 @@
     }
   }
   setInterval(refrescar, 20000);
+  // Recarga en cuanto termine el guardado en curso (refrescar no actúa mientras se guarda).
+  function refrescarAhora() {
+    setTimeout(() => { clearTimeout(temporizador); temporizador = null; refrescar(); }, 50);
+  }
   window.addEventListener('focus', refrescar);
   document.addEventListener('visibilitychange', refrescar);
 

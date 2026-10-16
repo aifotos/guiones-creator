@@ -99,11 +99,11 @@ siguiente hasta que tú la apruebes.
 **Resultado:** flujo completo: tú escribes → cliente revisa → cliente edita/aprueba.
 
 ### Fase 4 — Control de cambios
-- [ ] **Historial de versiones**: cada guardado queda registrado.
+- [x] **Historial de versiones**: se guarda cada «Listo» del cliente, cada cambio de turno y una copia cada 10 minutos mientras escribes.
 - [x] Ver qué cambió el cliente: lo añadido en verde, lo borrado tachado en rojo.
-- [ ] Restaurar cualquier versión anterior con un clic.
+- [x] Restaurar cualquier versión anterior con un clic (la actual queda en el historial).
 - [x] Estado de cada guión (pendiente / editado por el cliente / aprobado).
-- [ ] Al aprobarse, el guión se bloquea para que nadie lo cambie por error.
+- [x] Al aprobarse, el guión se bloquea para que nadie lo cambie por error (tú puedes desbloquearlo).
 - [x] Aviso en tu panel cuando un cliente edita o aprueba.
 
 **Resultado:** nunca pierdes un texto y sabes exactamente qué tocó el cliente.

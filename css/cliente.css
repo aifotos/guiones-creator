@@ -50,6 +50,14 @@
   padding: 10px 14px;
 }
 .cliente-nota.editar::before { content: "✏️"; }
+.cliente-nota.aprobado {
+  background: #E8F1EE;
+  border: 1px solid #CFE3DD;
+  color: #2F5A52;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.cliente-nota.aprobado::before { content: "🔒"; }
 
 .cliente-hoja .lectura { padding: 44px 52px; border: 1px solid var(--linea); }
 

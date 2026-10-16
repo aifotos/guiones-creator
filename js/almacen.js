@@ -108,8 +108,9 @@ const Almacen = (() => {
 
   // Manda el guion tal como está ahora. Si alguien lo cambió en otro sitio,
   // la API responde 409 con la versión nueva (error.datos.guion).
-  async function guardar(guion) {
-    const enviado = { titulo: guion.titulo, formato: guion.formato, bloques: guion.bloques, personajes: guion.personajes || [], version: guion.version };
+  // forzarCopia: guarda en el historial cómo estaba antes (al restaurar una versión).
+  async function guardar(guion, { forzarCopia = false } = {}) {
+    const enviado = { titulo: guion.titulo, formato: guion.formato, bloques: guion.bloques, personajes: guion.personajes || [], version: guion.version, forzarCopia };
     const respuesta = await pedir('PUT', `/api/guiones/${guion.id}`, enviado);
     guion.version = respuesta.version;
     guion.actualizado = respuesta.actualizado;
@@ -135,6 +136,13 @@ const Almacen = (() => {
     return (await pedir('GET', `/api/guiones/${id}/cambios`)).cambios;
   }
 
+  // Historial y bloqueo
+  const versiones = async (id) => (await pedir('GET', `/api/guiones/${id}/versiones`)).versiones;
+  async function desbloquear(guion) {
+    await pedir('POST', `/api/guiones/${guion.id}/desbloquear`);
+    guion.aprobado = null;
+  }
+
   // Avisos por Telegram
   const avisos = () => pedir('GET', '/api/avisos');
   const conectarTelegram = () => pedir('POST', '/api/avisos/telegram/conectar');
@@ -154,5 +162,6 @@ const Almacen = (() => {
     crearCliente, editarCliente, regenerarLink, borrarCliente,
     crear, guardar, reemplazar, borrar, comentar, cambios,
     avisos, conectarTelegram, pruebaTelegram, desconectarTelegram,
+    versiones, desbloquear,
   };
 })();

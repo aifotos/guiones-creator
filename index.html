@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guiones Creator · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161301">
-  <link rel="stylesheet" href="css/app.css?v=202610161301">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161309">
+  <link rel="stylesheet" href="css/app.css?v=202610161309">
 </head>
 <body>
   <header class="barra">
@@ -118,6 +118,10 @@
               <span>Formato</span>
               <select id="formato"></select>
             </label>
+            <button class="boton boton-historial" id="abrir-historial" title="Ver y recuperar versiones anteriores">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg>
+              <span>Historial</span>
+            </button>
             <button class="boton boton-borrar" id="borrar" title="Eliminar este guión">
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
               <span>Eliminar</span>
@@ -190,6 +194,29 @@
       </div>
     </main>
   </div>
+
+  <dialog class="dialogo dialogo-historial" id="dialogo-historial">
+    <div class="historial">
+      <header class="historial-cabecera">
+        <h2>Historial del guión</h2>
+        <button class="boton-icono" id="historial-cerrar" aria-label="Cerrar">✕</button>
+      </header>
+      <div class="historial-cuerpo">
+        <ul class="historial-lista" id="historial-lista"></ul>
+        <section class="historial-vista">
+          <div class="historial-barra">
+            <label class="interruptor">
+              <input type="checkbox" id="historial-comparar">
+              <span>Marcar lo que cambió hasta hoy</span>
+            </label>
+            <span class="leyenda" id="historial-leyenda" hidden><del class="cambio-borrado">ya no está</del> <ins class="cambio-nuevo">se añadió después</ins></span>
+            <button class="boton boton-principal" id="historial-restaurar">Restaurar esta versión</button>
+          </div>
+          <article class="lectura" id="historial-lectura"></article>
+        </section>
+      </div>
+    </div>
+  </dialog>
 
   <dialog class="dialogo dialogo-avisos" id="dialogo-avisos">
     <form method="dialog" class="dialogo-contenido">
@@ -274,13 +301,13 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161301"></script>
-  <script src="js/guion.js?v=202610161301"></script>
-  <script src="js/almacen.js?v=202610161301"></script>
-  <script src="js/sugerencias.js?v=202610161301"></script>
-  <script src="js/diferencias.js?v=202610161301"></script>
-  <script src="js/chat.js?v=202610161301"></script>
-  <script src="js/vista.js?v=202610161301"></script>
-  <script src="js/app.js?v=202610161301"></script>
+  <script src="js/config.js?v=202610161309"></script>
+  <script src="js/guion.js?v=202610161309"></script>
+  <script src="js/almacen.js?v=202610161309"></script>
+  <script src="js/sugerencias.js?v=202610161309"></script>
+  <script src="js/diferencias.js?v=202610161309"></script>
+  <script src="js/chat.js?v=202610161309"></script>
+  <script src="js/vista.js?v=202610161309"></script>
+  <script src="js/app.js?v=202610161309"></script>
 </body>
 </html>

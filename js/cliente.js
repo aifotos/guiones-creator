@@ -104,6 +104,9 @@
     const estado = $('estado-guion');
     estado.textContent = actual.aprobado ? `✓ Aprobaste este guión el ${fecha(actual.aprobado)}` : 'Pendiente de tu revisión';
     estado.className = `estado-guion ${actual.aprobado ? 'aprobado' : 'pendiente'}`;
+    // Aprobado = bloqueado: ya no se edita (si hace falta un cambio, se pide por el chat).
+    $('editar').hidden = !!actual.aprobado && !editando;
+    $('nota-aprobado').hidden = !actual.aprobado || editando;
     $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar guión';
     $('editar').classList.toggle('activa', editando);
     $('descartar').hidden = !editando;
@@ -185,6 +188,7 @@
     let borrador = null;
     try { borrador = JSON.parse(localStorage.getItem(claveBorrador()) || 'null'); } catch {}
     if (!borrador) return;
+    if (actual.aprobado) return borrarBorrador();
     if (borrador.version !== actual.version) {
       borrarBorrador();
       return avisar('Tenías cambios sin enviar, pero aifotos actualizó el guión mientras tanto, así que no se pueden aplicar. Revisa la versión nueva y vuelve a hacer tus cambios.');
@@ -223,6 +227,14 @@
         estadoEdicion('');
         avisar('aifotos actualizó este guión mientras lo editabas, así que te mostramos la versión nueva. Revísala y vuelve a hacer tus cambios.');
         borrarBorrador();
+      } else if (e.estado === 423) {
+        editando = false;
+        original = null;
+        borrarBorrador();
+        actual.aprobado = actual.aprobado || Date.now();
+        pintarGuion();
+        estadoEdicion('');
+        avisar(e.message);
       } else {
         estadoEdicion('No se pudo enviar. Revisa tu conexión y vuelve a pulsar Listo.', true);
       }
@@ -240,7 +252,7 @@
 
   $('editar').addEventListener('click', async () => {
     if (editando) return enviarCambios();
-    if (actual.aprobado && !(await preguntar('Ya aprobaste este guión. Si cambias algo, tendrás que volver a aprobarlo. ¿Quieres editarlo?', { si: 'Sí, editar' }))) return;
+    if (actual.aprobado) return;
     empezarEdicion();
   });
 

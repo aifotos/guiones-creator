@@ -1160,7 +1160,7 @@ body.chat-minimizado .chat-abrir { display: grid; }
 /* Con poco ancho la barra del guion ocupa dos filas: mejor que no tape el texto. */
 @media (max-width: 1100px) {
   .doc-barra { position: static; }
-  .formato-selector span, .boton-borrar span { display: none; }
+  .formato-selector span, .boton-borrar span, .boton-historial span { display: none; }
 }
 
 /* ---------- Celular ---------- */
@@ -1274,3 +1274,47 @@ body.chat-minimizado .chat-abrir { display: grid; }
 }
 .boton-telegram:hover { background: #1C8CC2; border-color: #1C8CC2; }
 .boton-telegram[hidden] { display: none; }
+
+/* ---------- Historial de versiones ---------- */
+
+.boton-historial { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-color: transparent; }
+.dialogo-historial { width: min(1080px, calc(100vw - 32px)); height: min(760px, calc(100vh - 48px)); }
+.historial { display: flex; flex-direction: column; height: 100%; }
+.historial-cabecera { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--linea); }
+.historial-cabecera h2 { margin: 0; font-size: 20px; }
+.historial-cuerpo { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr); }
+.historial-lista { list-style: none; margin: 0; padding: 10px; overflow-y: auto; border-right: 1px solid var(--linea); background: #FBFAF8; display: grid; align-content: start; gap: 4px; }
+.historial-item {
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.historial-item:hover { background: #F0EDE8; }
+.historial-item.activo { background: var(--papel); border-color: var(--linea); box-shadow: var(--sombra); }
+.historial-fecha { font-weight: 700; }
+.historial-autor { font-size: 13px; font-weight: 600; }
+.historial-autor.de-cliente { color: var(--aifotos-granate); }
+.historial-autor.de-admin { color: var(--aifotos-salvia); }
+.historial-vista { display: flex; flex-direction: column; min-height: 0; }
+.historial-barra { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--linea); }
+.historial-barra .boton-principal { margin-left: auto; }
+.historial-barra [hidden] { display: none !important; }
+.historial-vista .lectura { flex: 1; overflow-y: auto; border-radius: 0; box-shadow: none; padding: 32px 40px; }
+
+@media (max-width: 760px) {
+  .historial-cuerpo { grid-template-columns: 1fr; grid-template-rows: 190px minmax(0, 1fr); }
+  .historial-lista { border-right: 0; border-bottom: 1px solid var(--linea); }
+  .historial-vista .lectura { padding: 20px; }
+  .boton-historial span { display: none; }
+}
+
+/* ---------- Guion aprobado: editor bloqueado ---------- */
+
+#modo-editar.bloqueado { opacity: .6; filter: grayscale(.3); user-select: none; }
+.aviso-doc.aprobado .boton-texto { color: #2F5A52; }
