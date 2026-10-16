@@ -153,6 +153,59 @@
     return !!temporizador || guardando;
   }
 
+  // ---------- Novedades del cliente ----------
+  // Se recuerda en este navegador cuándo abriste cada guion por última vez;
+  // lo que el cliente hizo después (editar, aprobar, comentar) es una novedad.
+
+  const CLAVE_VISTOS = 'guiones-creator:vistos';
+  let vistos = {};
+  try { vistos = JSON.parse(localStorage.getItem(CLAVE_VISTOS) || '{}'); } catch {}
+
+  function marcarVisto(g) {
+    vistos[g.id] = Date.now();
+    try { localStorage.setItem(CLAVE_VISTOS, JSON.stringify(vistos)); } catch {}
+  }
+
+  // Devuelve qué hizo el cliente desde la última vez que abriste el guion.
+  function novedades(g) {
+    const visto = vistos[g.id] || 0;
+    const lista = [];
+    if (g.editado_por === 'cliente' && g.actualizado > visto) lista.push('editó');
+    if (g.aprobado && g.aprobado > visto) lista.push('aprobó');
+    if ((g.comentarios || []).some((c) => c.autor === 'cliente' && c.creado > visto)) lista.push('comentó');
+    return lista;
+  }
+
+  function insignias(g) {
+    const caja = elemento('span', 'insignias');
+    if (g.aprobado) caja.append(elemento('span', 'insignia aprobado', 'Aprobado ✓'));
+    if (novedades(g).length) caja.append(elemento('span', 'insignia nuevo', 'Nuevo'));
+    return caja;
+  }
+
+  const fechaHora = (ms) => new Date(ms).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  function pintarAvisos() {
+    const caja = $('doc-avisos');
+    caja.replaceChildren();
+    if (actual.aprobado) caja.append(elemento('p', 'aviso-doc aprobado', `✓ El cliente aprobó este guión el ${fechaHora(actual.aprobado)}.`));
+    else if (actual.editado_por === 'cliente') caja.append(elemento('p', 'aviso-doc editado', `✎ El cliente hizo cambios en este guión el ${fechaHora(actual.actualizado)}. Todavía no lo ha aprobado.`));
+  }
+
+  function pintarComentariosDoc() {
+    const lista = $('doc-comentarios');
+    lista.replaceChildren();
+    for (const c of actual.comentarios || []) {
+      const li = elemento('li', `comentario${c.autor === 'admin' ? ' propio' : ''}`);
+      const cabecera = elemento('div', 'comentario-cabecera');
+      const cliente = Almacen.obtenerCliente(actual.cliente_id);
+      cabecera.append(elemento('b', '', c.autor === 'admin' ? 'Tú' : (cliente?.nombre || 'Cliente')), elemento('small', '', fechaHora(c.creado)));
+      li.append(cabecera, elemento('p', 'comentario-texto', c.texto));
+      lista.append(li);
+    }
+    if (!lista.children.length) lista.append(elemento('li', 'lista-vacia', 'Sin comentarios todavía. El cliente puede dejarlos desde su link.'));
+  }
+
   // ---------- Lista lateral: clientes y sus guiones ----------
 
   function elemento(etiqueta, clase, texto) {
@@ -177,6 +230,7 @@
       const cabecera = elemento('button', 'grupo-cliente' + (clienteAbierto === c.id ? ' activo' : ''));
       cabecera.append(elemento('span', 'grupo-nombre', c.nombre));
       if (!c.activo) cabecera.append(elemento('small', 'grupo-apagado', 'link apagado'));
+      if (guiones.some((g) => novedades(g).length)) cabecera.append(elemento('span', 'punto-nuevo'));
       cabecera.append(elemento('small', 'grupo-cuenta', String(guiones.length)));
       cabecera.addEventListener('click', () => { abrirCliente(c.id); cerrarLateral(); });
       grupo.append(cabecera);
@@ -185,7 +239,9 @@
       for (const g of guiones) {
         const li = elemento('li');
         const boton = elemento('button', 'lista-item' + (actual && g.id === actual.id ? ' activo' : ''));
-        boton.append(elemento('span', 'lista-titulo', g.titulo || 'Guión sin título'), elemento('span', 'lista-info', infoGuion(g)));
+        const titulo = elemento('span', 'lista-titulo', g.titulo || 'Guión sin título');
+        boton.append(titulo, elemento('span', 'lista-info', infoGuion(g)));
+        if (g.aprobado || novedades(g).length) boton.append(insignias(g));
         boton.addEventListener('click', () => { abrir(g.id); cerrarLateral(); });
         li.append(boton);
         sub.append(li);
@@ -232,8 +288,11 @@
     if (actual) {
       normalizar(actual);
       recordar(`g:${actual.id}`);
+      marcarVisto(actual);
       $('titulo').value = actual.titulo;
       pintarCabeceraCliente();
+      pintarAvisos();
+      pintarComentariosDoc();
       pintarEditor();
       cambiarModo(modo);
     }
@@ -279,7 +338,10 @@
     for (const g of Almacen.guionesDe(c.id)) {
       const li = elemento('li');
       const tarjeta = elemento('button', 'tarjeta');
-      tarjeta.append(elemento('span', 'tarjeta-titulo', g.titulo || 'Guión sin título'), elemento('span', 'lista-info', infoGuion(g)));
+      const titulo = elemento('span', 'tarjeta-titulo', g.titulo || 'Guión sin título');
+      titulo.append(insignias(g));
+      const quehizo = novedades(g);
+      tarjeta.append(titulo, elemento('span', 'lista-info', infoGuion(g) + (quehizo.length ? ` · el cliente ${quehizo.join(', ')}` : '')));
       tarjeta.addEventListener('click', () => abrir(g.id));
       li.append(tarjeta);
       ul.append(li);
@@ -918,6 +980,63 @@
     if (hecho) { pintarPanelCliente(); pintarLista(); }
   });
   $('cliente-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('cliente-nombre').blur(); });
+
+  // ---------- Responder al cliente ----------
+
+  $('form-respuesta').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const texto = $('respuesta-texto').value.trim();
+    if (!texto) return $('respuesta-texto').focus();
+    $('respuesta-enviar').disabled = true;
+    const guion = actual;
+    const hecho = await intentar(() => Almacen.comentar(guion, texto), 'No se pudo enviar la respuesta');
+    $('respuesta-enviar').disabled = false;
+    if (!hecho) return;
+    $('respuesta-texto').value = '';
+    marcarVisto(guion);
+    if (guion === actual) pintarComentariosDoc();
+  });
+
+  // ---------- Ver lo que hizo el cliente sin recargar ----------
+  // Cada poco (y al volver a esta pestaña) se piden los datos de nuevo. Si estás
+  // escribiendo, se espera a la siguiente vez para no interrumpirte.
+
+  let refrescando = false;
+  async function refrescar() {
+    if (refrescando || document.hidden || !Almacen.haySesion() || $('marco').hidden || hayCambiosSinGuardar()) return;
+    if (document.querySelector('dialog[open]')) return;
+    refrescando = true;
+    try {
+      const antes = actual;
+      await Almacen.cargar();
+      if (antes) {
+        const nuevo = Almacen.obtener(antes.id);
+        if (!nuevo) { abrir(null); return; }
+        if (nuevo.version === antes.version) {
+          // Nada cambió: se conserva el mismo objeto (y lo que hay en pantalla).
+          antes.comentarios = nuevo.comentarios;
+          antes.aprobado = nuevo.aprobado;
+          Almacen.reemplazar(antes);
+          pintarAvisos();
+          pintarComentariosDoc();
+          marcarVisto(antes);
+        } else if (!hayCambiosSinGuardar()) {
+          abrir(nuevo.id);
+          avisar('El cliente hizo cambios: ya ves la versión nueva');
+        }
+      } else if (clienteAbierto) {
+        pintarPanelCliente();
+      }
+      pintarLista();
+    } catch {
+      // Sin conexión: se intentará en el siguiente ciclo.
+    } finally {
+      refrescando = false;
+    }
+  }
+  setInterval(refrescar, 30000);
+  window.addEventListener('focus', refrescar);
+  document.addEventListener('visibilitychange', refrescar);
 
   // ---------- Móvil ----------
 

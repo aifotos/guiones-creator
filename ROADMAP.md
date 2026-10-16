@@ -89,10 +89,12 @@ siguiente hasta que tú la apruebes.
 **Resultado:** pegas un guión, obtienes el link del cliente.
 
 ### Fase 3 — La vista del cliente
-- [ ] Página que abre el cliente con su link (pensada primero para celular).
-- [ ] Puede leer y **editar** el guión; se guarda solo.
-- [ ] Botón **"Aprobar guión"** y caja de comentarios.
-- [ ] Con tu marca aifotos.
+- [x] Página que abre el cliente con su link (pensada primero para celular).
+- [x] Puede leer y **editar** el guión (botón Editar: cambia los textos en el mismo sitio); se guarda solo.
+- [x] Botón **"Aprobar guión"** y caja de comentarios.
+- [x] Con tu marca aifotos.
+
+- [x] En tu panel: aviso de "Nuevo" cuando el cliente edita, aprueba o comenta, y respuesta a sus comentarios.
 
 **Resultado:** flujo completo: tú escribes → cliente revisa → cliente edita/aprueba.
 

@@ -124,6 +124,12 @@ const Almacen = (() => {
     return guion;
   }
 
+  async function comentar(guion, texto) {
+    const comentario = await pedir('POST', `/api/guiones/${guion.id}/comentarios`, { texto });
+    (guion.comentarios ||= []).push(comentario);
+    return comentario;
+  }
+
   async function borrar(id) {
     await pedir('DELETE', `/api/guiones/${id}`);
     guiones = guiones.filter((g) => g.id !== id);
@@ -135,6 +141,6 @@ const Almacen = (() => {
     alCaducarSesion: (fn) => { alCaducar = fn; },
     listarClientes, obtenerCliente, guionesDe, listar, obtener, linkDe,
     crearCliente, editarCliente, regenerarLink, borrarCliente,
-    crear, guardar, reemplazar, borrar,
+    crear, guardar, reemplazar, borrar, comentar,
   };
 })();

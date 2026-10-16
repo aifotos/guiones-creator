@@ -95,6 +95,7 @@
           <button class="doc-cliente-nombre" id="doc-cliente-nombre" title="Ver cliente y su link"></button>
           <button class="boton-texto" id="doc-copiar">Copiar link del cliente</button>
         </div>
+        <div class="doc-avisos" id="doc-avisos"></div>
         <div class="doc-barra">
           <div class="pestanas" role="tablist">
             <button class="pestana activa" data-modo="editar" role="tab">Editar</button>
@@ -130,6 +131,15 @@
         </div>
 
         <article class="lectura" id="modo-leer" hidden></article>
+
+        <section class="doc-comentarios">
+          <h2>Comentarios del cliente</h2>
+          <ul class="comentarios-lista" id="doc-comentarios"></ul>
+          <form class="comentario-form" id="form-respuesta">
+            <textarea id="respuesta-texto" rows="2" placeholder="Responde al cliente… (lo verá en su link)" aria-label="Respuesta"></textarea>
+            <button class="boton boton-principal" id="respuesta-enviar">Responder</button>
+          </form>
+        </section>
       </div>
     </main>
   </div>

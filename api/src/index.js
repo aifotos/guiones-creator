@@ -10,9 +10,13 @@
 //   POST   /api/guiones                { cliente_id, titulo, formato, contenido }
 //   PUT    /api/guiones/:id            { titulo, formato, contenido, version }
 //   DELETE /api/guiones/:id
+//   POST   /api/guiones/:id/comentarios { texto }  responder al cliente
 //
-// Ruta pública del cliente (solo con su link):
-//   GET    /api/c/:token               su nombre y sus guiones
+// Rutas del cliente (solo con su link secreto):
+//   GET    /api/c/:token                              su nombre, guiones y comentarios
+//   PUT    /api/c/:token/guiones/:id                  { bloques, version } cambia los textos
+//   POST   /api/c/:token/guiones/:id/aprobar          aprueba el guion
+//   POST   /api/c/:token/guiones/:id/comentarios      { texto }
 
 const SESION_DIAS = 30;
 const MAX_FALLOS = 8;
@@ -117,8 +121,20 @@ async function login(peticion, env) {
 // ---------- Datos ----------
 
 const FORMATOS = ['sencillo', 'video', 'cine'];
+const TIPOS = ['escena', 'accion', 'camara', 'voz', 'pantalla', 'nota', 'transicion', 'parrafo'];
 
-function guionDeFila(f) {
+function limpiarBloques(bloques) {
+  if (!Array.isArray(bloques) || bloques.length > 3000) throw new ErrorHttp(400, 'Bloques no válidos');
+  return bloques.map((b) => {
+    if (!b || typeof b !== 'object' || !TIPOS.includes(b.tipo)) throw new ErrorHttp(400, 'Bloques no válidos');
+    const limpio = { id: String(b.id ?? '').slice(0, 64), tipo: b.tipo, texto: String(b.texto ?? '').slice(0, 50000) };
+    if (b.personaje != null) limpio.personaje = String(b.personaje).slice(0, 80);
+    if (b.acotacion != null) limpio.acotacion = String(b.acotacion).slice(0, 200);
+    return limpio;
+  });
+}
+
+function guionDeFila(f, comentarios = []) {
   let contenido = {};
   try { contenido = JSON.parse(f.contenido); } catch {}
   return {
@@ -129,18 +145,28 @@ function guionDeFila(f) {
     bloques: Array.isArray(contenido.bloques) ? contenido.bloques : [],
     personajes: Array.isArray(contenido.personajes) ? contenido.personajes : [],
     version: f.version,
+    editado_por: f.editado_por || 'admin',
+    aprobado: f.aprobado || null,
+    comentarios,
     creado: f.creado,
     actualizado: f.actualizado,
   };
 }
 
+// Agrupa los comentarios por guion: { idGuion: [comentario, …] }
+function agruparComentarios(filas) {
+  const grupos = {};
+  for (const c of filas) (grupos[c.guion_id] ||= []).push({ id: c.id, autor: c.autor, texto: c.texto, creado: c.creado });
+  return grupos;
+}
+
 function validarGuion(d) {
   if (d.formato != null && !FORMATOS.includes(d.formato)) throw new ErrorHttp(400, 'Formato desconocido');
-  if (d.bloques != null && !Array.isArray(d.bloques)) throw new ErrorHttp(400, 'Bloques no válidos');
+  const personajes = Array.isArray(d.personajes) ? d.personajes.slice(0, 200).map((p) => String(p).slice(0, 80)) : [];
   return {
     titulo: String(d.titulo ?? '').slice(0, 300),
     formato: d.formato || 'video',
-    contenido: JSON.stringify({ bloques: d.bloques || [], personajes: Array.isArray(d.personajes) ? d.personajes : [] }),
+    contenido: JSON.stringify({ bloques: limpiarBloques(d.bloques || []), personajes }),
   };
 }
 
@@ -151,11 +177,13 @@ function nombreCliente(nombre) {
 }
 
 async function todo(env) {
-  const [clientes, guiones] = await env.DB.batch([
+  const [clientes, guiones, comentarios] = await env.DB.batch([
     env.DB.prepare('SELECT * FROM clientes ORDER BY actualizado DESC'),
     env.DB.prepare('SELECT * FROM guiones ORDER BY actualizado DESC'),
+    env.DB.prepare('SELECT * FROM comentarios ORDER BY creado'),
   ]);
-  return json({ clientes: clientes.results, guiones: guiones.results.map(guionDeFila) });
+  const porGuion = agruparComentarios(comentarios.results);
+  return json({ clientes: clientes.results, guiones: guiones.results.map((g) => guionDeFila(g, porGuion[g.id])) });
 }
 
 async function crearCliente(peticion, env) {
@@ -220,16 +248,16 @@ async function guardarGuion(peticion, env, id) {
   const ahora = Date.now();
   // Solo guarda si nadie lo cambió desde la versión que tenía quien guarda.
   const r = await env.DB.prepare(
-    'UPDATE guiones SET titulo = ?, formato = ?, contenido = ?, version = version + 1, actualizado = ? WHERE id = ? AND version = ?',
+    "UPDATE guiones SET titulo = ?, formato = ?, contenido = ?, version = version + 1, editado_por = 'admin', actualizado = ? WHERE id = ? AND version = ?",
   ).bind(v.titulo, v.formato, v.contenido, ahora, id, Number(d.version)).run();
   if (!r.meta.changes) {
     const fila = await env.DB.prepare('SELECT * FROM guiones WHERE id = ?').bind(id).first();
     if (!fila) throw new ErrorHttp(404, 'Ese guion no existe');
-    return json({ error: 'Este guion cambió en otro sitio', guion: guionDeFila(fila) }, 409);
+    return json({ error: 'Este guion cambió en otro sitio', guion: guionDeFila(fila, await comentariosDe(env, id)) }, 409);
   }
   const fila = await env.DB.prepare('SELECT * FROM guiones WHERE id = ?').bind(id).first();
   await env.DB.prepare('UPDATE clientes SET actualizado = ? WHERE id = ?').bind(ahora, fila.cliente_id).run();
-  return json(guionDeFila(fila));
+  return json(guionDeFila(fila, await comentariosDe(env, id)));
 }
 
 async function borrarGuion(env, id) {
@@ -237,15 +265,97 @@ async function borrarGuion(env, id) {
   return json({ ok: true });
 }
 
-// Lo que ve el cliente: su nombre y sus guiones. Nada de los demás clientes.
-async function vistaCliente(env, token) {
+async function comentarAdmin(peticion, env, id) {
+  const guion = await env.DB.prepare('SELECT id FROM guiones WHERE id = ?').bind(id).first();
+  if (!guion) throw new ErrorHttp(404, 'Ese guion no existe');
+  return json(await guardarComentario(env, id, 'admin', (await leerCuerpo(peticion)).texto), 201);
+}
+
+async function guardarComentario(env, guionId, autor, texto) {
+  const limpio = String(texto ?? '').trim().slice(0, 4000);
+  if (!limpio) throw new ErrorHttp(400, 'El comentario está vacío');
+  const comentario = { id: nuevoId(), autor, texto: limpio, creado: Date.now() };
+  await env.DB.prepare('INSERT INTO comentarios (id, guion_id, autor, texto, creado) VALUES (?, ?, ?, ?, ?)')
+    .bind(comentario.id, guionId, autor, comentario.texto, comentario.creado).run();
+  return comentario;
+}
+
+// ---------- Cliente (con su link) ----------
+
+async function clienteDelLink(env, token) {
   const cliente = await env.DB.prepare('SELECT id, nombre FROM clientes WHERE token = ? AND activo = 1').bind(token).first();
   if (!cliente) throw new ErrorHttp(404, 'Este link no existe o fue desactivado');
-  const { results } = await env.DB.prepare('SELECT * FROM guiones WHERE cliente_id = ? ORDER BY actualizado DESC').bind(cliente.id).all();
+  return cliente;
+}
+
+async function guionDelCliente(env, cliente, id) {
+  const fila = await env.DB.prepare('SELECT * FROM guiones WHERE id = ? AND cliente_id = ?').bind(id, cliente.id).first();
+  if (!fila) throw new ErrorHttp(404, 'Ese guion no existe');
+  return fila;
+}
+
+async function comentariosDe(env, guionId) {
+  const { results } = await env.DB.prepare('SELECT * FROM comentarios WHERE guion_id = ? ORDER BY creado').bind(guionId).all();
+  return agruparComentarios(results)[guionId] || [];
+}
+
+// Lo que ve el cliente se limpia: sin el id del cliente.
+const paraCliente = ({ cliente_id, ...g }) => g;
+
+// Lo que ve el cliente: su nombre, sus guiones y sus comentarios. Nada de los demás clientes.
+async function vistaCliente(env, token) {
+  const cliente = await clienteDelLink(env, token);
+  const [guiones, comentarios] = await env.DB.batch([
+    env.DB.prepare('SELECT * FROM guiones WHERE cliente_id = ? ORDER BY actualizado DESC').bind(cliente.id),
+    env.DB.prepare('SELECT c.* FROM comentarios c JOIN guiones g ON g.id = c.guion_id WHERE g.cliente_id = ? ORDER BY c.creado').bind(cliente.id),
+  ]);
+  const porGuion = agruparComentarios(comentarios.results);
   return json({
     cliente: { nombre: cliente.nombre },
-    guiones: results.map(guionDeFila).map(({ cliente_id, ...g }) => g),
+    guiones: guiones.results.map((g) => paraCliente(guionDeFila(g, porGuion[g.id]))),
   });
+}
+
+// El cliente solo cambia textos: no puede añadir, quitar ni reordenar bloques.
+// Cambiar el guion quita la aprobación (hay que volver a aprobarlo).
+async function clienteEdita(peticion, env, token, id) {
+  const cliente = await clienteDelLink(env, token);
+  const fila = await guionDelCliente(env, cliente, id);
+  const d = await leerCuerpo(peticion);
+  if (Number(d.version) !== fila.version) {
+    return json({ error: 'Este guion cambió en otro sitio', guion: paraCliente(guionDeFila(fila, await comentariosDe(env, id))) }, 409);
+  }
+  const nuevos = new Map(limpiarBloques(d.bloques || []).map((b) => [b.id, b.texto]));
+  const contenido = JSON.parse(fila.contenido || '{}');
+  contenido.bloques = (contenido.bloques || []).map((b) => (nuevos.has(b.id) ? { ...b, texto: nuevos.get(b.id) } : b));
+  const ahora = Date.now();
+  const r = await env.DB.prepare(
+    "UPDATE guiones SET contenido = ?, version = version + 1, editado_por = 'cliente', aprobado = NULL, actualizado = ? WHERE id = ? AND version = ?",
+  ).bind(JSON.stringify(contenido), ahora, id, fila.version).run();
+  if (!r.meta.changes) { // otro guardado se coló justo ahora
+    const otra = await guionDelCliente(env, cliente, id);
+    return json({ error: 'Este guion cambió en otro sitio', guion: paraCliente(guionDeFila(otra, await comentariosDe(env, id))) }, 409);
+  }
+  await env.DB.prepare('UPDATE clientes SET actualizado = ? WHERE id = ?').bind(ahora, cliente.id).run();
+  const actualizada = await guionDelCliente(env, cliente, id);
+  return json(paraCliente(guionDeFila(actualizada, await comentariosDe(env, id))));
+}
+
+async function clienteAprueba(env, token, id) {
+  const cliente = await clienteDelLink(env, token);
+  await guionDelCliente(env, cliente, id);
+  const ahora = Date.now();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE guiones SET aprobado = ? WHERE id = ?').bind(ahora, id),
+    env.DB.prepare('UPDATE clientes SET actualizado = ? WHERE id = ?').bind(ahora, cliente.id),
+  ]);
+  return json({ aprobado: ahora });
+}
+
+async function clienteComenta(peticion, env, token, id) {
+  const cliente = await clienteDelLink(env, token);
+  await guionDelCliente(env, cliente, id);
+  return json(await guardarComentario(env, id, 'cliente', (await leerCuerpo(peticion)).texto), 201);
 }
 
 // ---------- Enrutador ----------
@@ -258,6 +368,9 @@ async function atender(peticion, env) {
 
   if (ruta === '/api/login' && metodo === 'POST') return login(peticion, env);
   if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})$/)) && metodo === 'GET') return vistaCliente(env, m[1]);
+  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)$/)) && metodo === 'PUT') return clienteEdita(peticion, env, m[1], m[2]);
+  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/aprobar$/)) && metodo === 'POST') return clienteAprueba(env, m[1], m[2]);
+  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/comentarios$/)) && metodo === 'POST') return clienteComenta(peticion, env, m[1], m[2]);
 
   if (ruta.startsWith('/api/')) {
     await exigirAdmin(peticion, env);
@@ -269,6 +382,7 @@ async function atender(peticion, env) {
       if (metodo === 'DELETE') return borrarCliente(env, m[1]);
     }
     if (ruta === '/api/guiones' && metodo === 'POST') return crearGuion(peticion, env);
+    if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)\/comentarios$/)) && metodo === 'POST') return comentarAdmin(peticion, env, m[1]);
     if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)$/))) {
       if (metodo === 'PUT') return guardarGuion(peticion, env, m[1]);
       if (metodo === 'DELETE') return borrarGuion(env, m[1]);

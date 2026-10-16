@@ -5,8 +5,72 @@
 .cliente-titulo { font-size: 28px; margin: 0 0 16px; }
 .cliente-lista { display: grid; gap: 10px; }
 .cliente-lista .tarjeta { text-decoration: none; color: inherit; }
+.cliente-lista .insignia { margin-left: 8px; vertical-align: middle; }
 .cliente-volver { margin: 0 0 12px -6px; }
 
 @media (max-width: 760px) {
   .cliente-principal { padding: 20px 12px 64px; }
+}
+
+/* ---------- Barra de acciones del guion ---------- */
+
+.cliente-barra {
+  position: sticky;
+  top: 56px;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: rgba(246, 244, 240, .94);
+  backdrop-filter: blur(6px);
+  padding: 10px 0;
+  margin-bottom: 8px;
+}
+.cliente-barra-estado { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.cliente-acciones { display: flex; gap: 8px; }
+.estado-guion { font-weight: 600; border-radius: 999px; padding: 4px 12px; font-size: 14px; }
+.estado-guion.aprobado { background: #E8F1EE; color: #3E6A62; }
+.estado-guion.pendiente { background: #FFF3DD; color: #8A5A08; }
+.cliente-ayuda {
+  background: #FFF8EC;
+  border: 1px solid #F3DDB3;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+  margin: 0 0 12px;
+}
+
+
+/* ---------- Textos editables (mismo aspecto que al leer) ---------- */
+
+.lectura textarea.editable {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: inherit;
+  border: 0;
+  border-radius: 6px;
+  background: #FFFBF2;
+  box-shadow: inset 0 0 0 1px #F0DDB8;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  width: calc(100% + 16px);
+  resize: none;
+  overflow: hidden;
+}
+.lectura textarea.editable:focus { outline: none; background: #FFF4DE; box-shadow: inset 0 0 0 2px var(--acento); }
+.lectura .lectura-escena-titulo textarea.editable { flex: 1; min-width: 0; width: auto; margin: 0; }
+.lectura textarea.lectura-parrafos { font-size: 19px; line-height: 1.8; min-height: 40vh; }
+.lectura.en-edicion .lectura-bloque, .lectura.en-edicion .cine-dialogo,
+.lectura.en-edicion .cine-accion, .lectura.en-edicion .cine-transicion { margin-bottom: 20px; }
+
+@media (max-width: 760px) {
+  .cliente-acciones { width: 100%; }
+  .cliente-acciones .boton { flex: 1; }
 }

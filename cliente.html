@@ -24,7 +24,29 @@
 
     <div id="guion" hidden>
       <button class="boton-texto cliente-volver" id="volver" hidden>← Todos tus guiones</button>
+
+      <div class="cliente-barra">
+        <div class="cliente-barra-estado">
+          <span class="estado-guion" id="estado-guion"></span>
+          <span class="guardado" id="guardado" aria-live="polite"></span>
+        </div>
+        <div class="cliente-acciones">
+          <button class="boton" id="editar">Editar</button>
+          <button class="boton boton-principal" id="aprobar">Aprobar guión</button>
+        </div>
+      </div>
+      <p class="cliente-ayuda" id="ayuda-edicion" hidden>Toca cualquier texto para cambiarlo. Los cambios se guardan solos y aifotos los verá. Cuando termines, pulsa <b>Listo</b>.</p>
+
       <article class="lectura" id="lectura"></article>
+
+      <section class="comentarios">
+        <h2>Comentarios</h2>
+        <ul class="comentarios-lista" id="comentarios-lista"></ul>
+        <form class="comentario-form" id="form-comentario">
+          <textarea id="comentario-texto" rows="3" placeholder="Escribe una sugerencia o una pregunta para aifotos…" aria-label="Comentario"></textarea>
+          <button class="boton boton-principal" id="comentario-enviar">Enviar comentario</button>
+        </form>
+      </section>
     </div>
   </main>
 

@@ -686,6 +686,49 @@ kbd {
 .campo textarea { resize: vertical; line-height: 1.5; }
 .dialogo-acciones { display: flex; justify-content: flex-end; gap: 8px; }
 
+/* ---------- Comentarios ---------- */
+
+.comentarios { margin-top: 40px; }
+.comentarios h2 { font-size: 20px; margin: 0 0 12px; }
+.comentarios-lista { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 10px; }
+.comentario {
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  padding: 12px 14px;
+  max-width: 88%;
+}
+.comentario.propio { justify-self: end; background: #FFF8EC; border-color: #F3DDB3; }
+.comentario-cabecera { display: flex; gap: 10px; align-items: baseline; font-size: 14px; }
+.comentario-cabecera small { color: var(--tinta-suave); }
+.comentario-texto { margin: 4px 0 0; white-space: pre-wrap; }
+.comentario-form { display: grid; gap: 8px; }
+.comentario-form textarea {
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 16px;
+  background: var(--papel);
+  resize: vertical;
+}
+.comentario-form .boton { justify-self: end; }
+
+/* ---------- Avisos del cliente en tu panel ---------- */
+
+.insignias { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
+.lista-item .insignias { margin: 2px 0 0; }
+.insignia { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.insignia.aprobado { background: #E8F1EE; color: #3E6A62; }
+.insignia.pendiente { background: #FFF3DD; color: #8A5A08; }
+.insignia.nuevo { background: var(--aifotos-granate); color: #fff; }
+.punto-nuevo { width: 8px; height: 8px; border-radius: 50%; background: var(--aifotos-granate); flex-shrink: 0; }
+.doc-avisos:empty { display: none; }
+.aviso-doc { margin: 8px 0 12px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+.aviso-doc.aprobado { background: #E8F1EE; color: #2F5A52; }
+.aviso-doc.editado { background: #FFF3DD; color: #74490A; }
+.doc-comentarios { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--linea); }
+.doc-comentarios h2 { font-size: 18px; margin: 0 0 12px; }
+
 /* ---------- Celular ---------- */
 
 .solo-movil { display: none; }
@@ -709,6 +752,7 @@ kbd {
   .bloque-acciones { opacity: 1; }
   .bloque-info { display: none; }
   .bloque-acciones { margin-left: auto; }
+  .comentario { max-width: 100%; }
   .campo-doble { grid-template-columns: 1fr; }
   .link-fila .boton { flex: 1; }
   .link-url { flex-basis: 100%; }
