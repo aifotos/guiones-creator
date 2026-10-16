@@ -7,9 +7,9 @@
   <meta name="referrer" content="no-referrer">
   <title>Tus guiones · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161102">
-  <link rel="stylesheet" href="css/app.css?v=202610161102">
-  <link rel="stylesheet" href="css/cliente.css?v=202610161102">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161115">
+  <link rel="stylesheet" href="css/app.css?v=202610161115">
+  <link rel="stylesheet" href="css/cliente.css?v=202610161115">
 </head>
 <body class="pagina-cliente">
   <header class="barra">
@@ -27,11 +27,23 @@
 
       <div class="cliente-layout">
         <section class="cliente-hoja">
-          <div class="hoja-estado">
-            <span class="estado-guion" id="estado-guion"></span>
-            <span class="guardado" id="guardado" aria-live="polite"></span>
+          <div class="barra-guion">
+            <div class="barra-guion-estado">
+              <span class="estado-guion" id="estado-guion"></span>
+              <span class="guardado" id="guardado" aria-live="polite"></span>
+            </div>
+            <div class="barra-guion-acciones" id="acciones">
+              <button class="accion" id="editar">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>
+                <span>Editar guión</span>
+              </button>
+              <button class="accion accion-principal" id="aprobar">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                <span>Aprobar</span>
+              </button>
+            </div>
           </div>
-          <p class="cliente-nota editar" id="ayuda-edicion" hidden>Toca cualquier texto para cambiarlo. Se guarda solo. Cuando termines, pulsa <b>Listo</b>.</p>
+          <p class="cliente-nota editar" id="ayuda-edicion" hidden>Toca cualquier texto para cambiarlo; se guarda solo. También puedes seleccionar una frase para comentarla. Cuando termines, pulsa <b>Listo</b>.</p>
           <p class="cliente-nota" id="pista-seleccion">Selecciona cualquier frase del guión para comentarla.</p>
           <article class="lectura" id="lectura"></article>
         </section>
@@ -48,21 +60,20 @@
     </div>
   </main>
 
-  <div class="acciones-flotantes" id="acciones" hidden>
-    <button class="accion" id="editar">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>
-      <span>Editar</span>
-    </button>
-    <button class="accion accion-principal" id="aprobar">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-      <span>Aprobar guión</span>
-    </button>
-  </div>
-
   <button class="burbuja-seleccion" id="burbuja" hidden>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
     Comentar esta frase
   </button>
+
+  <dialog class="dialogo dialogo-pregunta" id="dialogo-pregunta">
+    <form method="dialog" class="dialogo-contenido">
+      <p id="pregunta-texto"></p>
+      <div class="dialogo-acciones">
+        <button class="boton" value="no" id="pregunta-no">Cancelar</button>
+        <button class="boton boton-principal" value="si" id="pregunta-si">Sí</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog class="dialogo" id="dialogo-cita">
     <form method="dialog" class="dialogo-contenido" id="form-cita">
@@ -79,9 +90,10 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161102"></script>
-  <script src="js/guion.js?v=202610161102"></script>
-  <script src="js/vista.js?v=202610161102"></script>
-  <script src="js/cliente.js?v=202610161102"></script>
+  <script src="js/config.js?v=202610161115"></script>
+  <script src="js/guion.js?v=202610161115"></script>
+  <script src="js/diferencias.js?v=202610161115"></script>
+  <script src="js/vista.js?v=202610161115"></script>
+  <script src="js/cliente.js?v=202610161115"></script>
 </body>
 </html>

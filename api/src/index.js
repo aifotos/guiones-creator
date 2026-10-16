@@ -11,6 +11,7 @@
 //   PUT    /api/guiones/:id            { titulo, formato, contenido, version }
 //   DELETE /api/guiones/:id
 //   POST   /api/guiones/:id/comentarios { texto }  responder al cliente
+//   GET    /api/guiones/:id/cambios     qué cambió el cliente (antes y después)
 //
 // Rutas del cliente (solo con su link secreto):
 //   GET    /api/c/:token                              su nombre, guiones y comentarios
@@ -250,6 +251,8 @@ async function guardarGuion(peticion, env, id) {
   const d = await leerCuerpo(peticion);
   const v = validarGuion(d);
   const ahora = Date.now();
+  const previa = await env.DB.prepare('SELECT * FROM guiones WHERE id = ?').bind(id).first();
+  if (previa && previa.editado_por === 'cliente' && previa.version === Number(d.version)) await copiaDe(env, previa).run();
   // Solo guarda si nadie lo cambió desde la versión que tenía quien guarda.
   const r = await env.DB.prepare(
     "UPDATE guiones SET titulo = ?, formato = ?, contenido = ?, version = version + 1, editado_por = 'admin', actualizado = ? WHERE id = ? AND version = ?",
@@ -262,6 +265,27 @@ async function guardarGuion(peticion, env, id) {
   const fila = await env.DB.prepare('SELECT * FROM guiones WHERE id = ?').bind(id).first();
   await env.DB.prepare('UPDATE clientes SET actualizado = ? WHERE id = ?').bind(ahora, fila.cliente_id).run();
   return json(guionDeFila(fila, await comentariosDe(env, id)));
+}
+
+// Guarda una copia del guion tal como está, firmada por quien lo dejó así.
+function copiaDe(env, fila) {
+  return env.DB.prepare('INSERT INTO versiones (id, guion_id, version, autor, titulo, formato, contenido, creado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(nuevoId(), fila.id, fila.version, fila.editado_por || 'admin', fila.titulo, fila.formato, fila.contenido, fila.actualizado);
+}
+
+// Lo último que cambió el cliente: "antes" es como lo dejaste tú y "despues" como lo dejó él.
+async function cambiosDelCliente(env, id) {
+  const fila = await env.DB.prepare('SELECT * FROM guiones WHERE id = ?').bind(id).first();
+  if (!fila) throw new ErrorHttp(404, 'Ese guion no existe');
+  const despues = fila.editado_por === 'cliente'
+    ? fila
+    : await env.DB.prepare("SELECT * FROM versiones WHERE guion_id = ? AND autor = 'cliente' ORDER BY version DESC LIMIT 1").bind(id).first();
+  if (!despues) return json({ cambios: null });
+  const antes = await env.DB.prepare("SELECT * FROM versiones WHERE guion_id = ? AND autor = 'admin' AND version < ? ORDER BY version DESC LIMIT 1")
+    .bind(id, despues.version).first();
+  if (!antes) return json({ cambios: null });
+  const resumen = (f) => ({ version: f.version, fecha: f.actualizado ?? f.creado, bloques: JSON.parse(f.contenido || '{}').bloques || [] });
+  return json({ cambios: { antes: resumen(antes), despues: resumen(despues), vigente: despues === fila } });
 }
 
 async function borrarGuion(env, id) {
@@ -331,6 +355,7 @@ async function clienteEdita(peticion, env, token, id) {
   if (Number(d.version) !== fila.version) {
     return json({ error: 'Este guion cambió en otro sitio', guion: paraCliente(guionDeFila(fila, await comentariosDe(env, id))) }, 409);
   }
+  if (fila.editado_por !== 'cliente') await copiaDe(env, fila).run();
   const nuevos = new Map(limpiarBloques(d.bloques || []).map((b) => [b.id, b.texto]));
   const contenido = JSON.parse(fila.contenido || '{}');
   contenido.bloques = (contenido.bloques || []).map((b) => (nuevos.has(b.id) ? { ...b, texto: nuevos.get(b.id) } : b));
@@ -389,6 +414,7 @@ async function atender(peticion, env) {
     }
     if (ruta === '/api/guiones' && metodo === 'POST') return crearGuion(peticion, env);
     if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)\/comentarios$/)) && metodo === 'POST') return comentarAdmin(peticion, env, m[1]);
+    if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)\/cambios$/)) && metodo === 'GET') return cambiosDelCliente(env, m[1]);
     if ((m = ruta.match(/^\/api\/guiones\/([\w-]+)$/))) {
       if (metodo === 'PUT') return guardarGuion(peticion, env, m[1]);
       if (metodo === 'DELETE') return borrarGuion(env, m[1]);

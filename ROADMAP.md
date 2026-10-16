@@ -100,11 +100,11 @@ siguiente hasta que tú la apruebes.
 
 ### Fase 4 — Control de cambios
 - [ ] **Historial de versiones**: cada guardado queda registrado.
-- [ ] Ver qué cambió el cliente: lo añadido en verde, lo borrado tachado en rojo.
+- [x] Ver qué cambió el cliente: lo añadido en verde, lo borrado tachado en rojo.
 - [ ] Restaurar cualquier versión anterior con un clic.
-- [ ] Estado de cada guión: Borrador → Enviado → En revisión → Aprobado.
+- [x] Estado de cada guión (pendiente / editado por el cliente / aprobado).
 - [ ] Al aprobarse, el guión se bloquea para que nadie lo cambie por error.
-- [ ] Aviso en tu panel cuando un cliente edita o aprueba.
+- [x] Aviso en tu panel cuando un cliente edita o aprueba.
 
 **Resultado:** nunca pierdes un texto y sabes exactamente qué tocó el cliente.
 

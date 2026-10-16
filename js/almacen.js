@@ -130,6 +130,11 @@ const Almacen = (() => {
     return comentario;
   }
 
+  // Qué cambió el cliente: { antes, despues, vigente } o null si no hay registro.
+  async function cambios(id) {
+    return (await pedir('GET', `/api/guiones/${id}/cambios`)).cambios;
+  }
+
   async function borrar(id) {
     await pedir('DELETE', `/api/guiones/${id}`);
     guiones = guiones.filter((g) => g.id !== id);
@@ -141,6 +146,6 @@ const Almacen = (() => {
     alCaducarSesion: (fn) => { alCaducar = fn; },
     listarClientes, obtenerCliente, guionesDe, listar, obtener, linkDe,
     crearCliente, editarCliente, regenerarLink, borrarCliente,
-    crear, guardar, reemplazar, borrar, comentar,
+    crear, guardar, reemplazar, borrar, comentar, cambios,
   };
 })();

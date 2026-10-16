@@ -189,7 +189,13 @@
     const caja = $('doc-avisos');
     caja.replaceChildren();
     if (actual.aprobado) caja.append(elemento('p', 'aviso-doc aprobado', `✓ El cliente aprobó este guión el ${fechaHora(actual.aprobado)}.`));
-    else if (actual.editado_por === 'cliente') caja.append(elemento('p', 'aviso-doc editado', `✎ El cliente hizo cambios en este guión el ${fechaHora(actual.actualizado)}. Todavía no lo ha aprobado.`));
+    else if (actual.editado_por === 'cliente') {
+      const aviso = elemento('p', 'aviso-doc editado', `✎ El cliente hizo cambios en este guión el ${fechaHora(actual.actualizado)}. Todavía no lo ha aprobado. `);
+      const ver = elemento('button', 'boton-texto', 'Ver qué cambió');
+      ver.addEventListener('click', () => { verCambios = true; cambiarModo('leer'); });
+      aviso.append(ver);
+      caja.append(aviso);
+    }
   }
 
   function pintarComentariosDoc() {
@@ -220,6 +226,7 @@
   // Muestra la frase comentada: en la vista del cliente sale resaltada; si ya
   // no está igual (porque se cambió), se señala el bloque donde estaba.
   function verFrase(c) {
+    verCambios = false;
     cambiarModo('leer');
     const marca = $('modo-leer').querySelector(`mark[data-comentario="${c.id}"]`)
       || $('modo-leer').querySelector(`[data-bloque="${c.cita.bloque}"]`);
@@ -817,7 +824,7 @@
     actual.bloques = Guion.convertir(actual.bloques, destino);
     actual.formato = destino;
     pintarEditor();
-    if (modo === 'leer') Vista.render(actual, $('modo-leer'), { citas: citasDe(actual) });
+    if (modo === 'leer') pintarLectura();
     guardarYa();
     avisar(`Ahora es un guión ${Guion.FORMATOS[destino].nombre.toLowerCase()}`);
   });
@@ -830,7 +837,8 @@
     document.querySelectorAll('.pestana').forEach((p) => p.classList.toggle('activa', p.dataset.modo === modo));
     $('modo-editar').hidden = modo !== 'editar';
     $('modo-leer').hidden = modo !== 'leer';
-    if (modo === 'leer') Vista.render(actual, $('modo-leer'), { citas: citasDe(actual) });
+    $('cambios-barra').hidden = true;
+    if (modo === 'leer') pintarLectura();
     else document.querySelectorAll('#modo-editar textarea').forEach(ajustarAltura);
   }
 
@@ -874,6 +882,46 @@
   function formatoPreferido() {
     try { return localStorage.getItem('guiones-creator:formato') || 'video'; } catch { return 'video'; }
   }
+
+  // ---------- Cambios del cliente: tachado lo borrado, en verde lo añadido ----------
+
+  let verCambios = false;
+  const cambiosGuardados = new Map(); // id del guion → { version, cambios }
+
+  async function cambiosDe(g) {
+    const guardado = cambiosGuardados.get(g.id);
+    if (guardado && guardado.version === g.version) return guardado.cambios;
+    const cambios = await Almacen.cambios(g.id);
+    cambiosGuardados.set(g.id, { version: g.version, cambios });
+    return cambios;
+  }
+
+  // Pinta la vista del cliente al momento y, si hay cambios del cliente, ofrece marcarlos.
+  async function pintarLectura() {
+    const guion = actual;
+    Vista.render(guion, $('modo-leer'), { citas: citasDe(guion) });
+    let cambios = null;
+    try { cambios = await cambiosDe(guion); } catch { /* sin conexión: solo la vista normal */ }
+    if (guion !== actual || modo !== 'leer') return;
+    $('cambios-barra').hidden = !cambios;
+    if (!cambios) return;
+    $('ver-cambios').checked = verCambios;
+    $('cambios-info').textContent = !verCambios ? ''
+      : cambios.vigente
+        ? `Cambios que hizo el cliente, comparados con tu versión anterior. Última edición: ${fechaHora(cambios.despues.fecha)}.`
+        : `Así dejó el cliente el guión el ${fechaHora(cambios.despues.fecha)}. Después lo cambiaste tú; desmarca la casilla para ver la versión actual.`;
+    if (verCambios) {
+      Vista.render({ ...guion, bloques: cambios.despues.bloques }, $('modo-leer'), {
+        antes: new Map(cambios.antes.bloques.map((b) => [b.id, b.texto])),
+      });
+      $('modo-leer').querySelector('del, ins')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  $('ver-cambios').addEventListener('change', () => {
+    verCambios = $('ver-cambios').checked;
+    pintarLectura();
+  });
 
   // ---------- Nuevo guión ----------
 

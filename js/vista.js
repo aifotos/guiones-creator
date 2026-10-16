@@ -2,9 +2,24 @@
 // Con { editable: true } cada texto se convierte en un campo que se puede
 // cambiar en el mismo sitio (la página del cliente lo usa para editar).
 // Con { citas: [{ id, bloque, texto }] } las frases comentadas salen resaltadas.
+// Con { antes: Map(idBloque → texto anterior) } se marcan los cambios:
+// tachado lo que se borró y en verde lo que se añadió.
 const Vista = (() => {
   let edicion = null; // { alCambiar } mientras se pinta en modo edición
   let citas = [];     // frases comentadas, mientras se pinta para leer
+  let antes = null;   // textos anteriores, mientras se pintan los cambios
+
+  // Un bloque se muestra si tiene texto, o si lo tenía antes (el cliente lo vació).
+  const tieneTexto = (b) => !!b.texto.trim() || !!(antes && (antes.get(b.id) || '').trim());
+
+  // Pinta el texto marcando lo borrado y lo nuevo respecto a la versión anterior.
+  function marcarCambios(nodo, b) {
+    const anterior = antes.has(b.id) ? antes.get(b.id) : '';
+    for (const parte of Diferencias.comparar(anterior, b.texto)) {
+      if (parte.tipo === 'igual') nodo.append(parte.texto);
+      else nodo.append(el(parte.tipo === 'borrado' ? 'del' : 'ins', `cambio-${parte.tipo}`, parte.texto));
+    }
+  }
 
   function el(etiqueta, clase, texto) {
     const nodo = document.createElement(etiqueta);
@@ -44,10 +59,11 @@ const Vista = (() => {
     if (!edicion) {
       const nodo = el('div', clase);
       nodo.dataset.bloque = b.id;
-      resaltar(nodo, b);
+      if (antes) marcarCambios(nodo, b); else resaltar(nodo, b);
       return nodo;
     }
     const area = el('textarea', `${clase} editable`);
+    area.dataset.bloque = b.id;
     area.value = b.texto;
     area.rows = 1;
     area.spellcheck = true;
@@ -78,6 +94,7 @@ const Vista = (() => {
 
   function sencillo(guion, contenedor) {
     if (edicion) return contenedor.append(texto(guion.bloques[0], 'lectura-parrafos'));
+    if (antes) return contenedor.append(texto(guion.bloques[0], 'lectura-parrafos lectura-parrafos-cambios'));
     const contenido = guion.bloques.map((b) => b.texto).join('\n\n').trim();
     if (!contenido) return contenedor.append(vacio());
     for (const parrafo of contenido.split(/\n\s*\n/)) {
@@ -99,18 +116,18 @@ const Vista = (() => {
   }
 
   function video(guion, contenedor) {
-    const visibles = guion.bloques.filter((b) => b.texto.trim() || b.tipo === 'escena');
+    const visibles = guion.bloques.filter((b) => tieneTexto(b) || b.tipo === 'escena');
     if (!visibles.length) return contenedor.append(vacio());
     for (const grupo of Guion.porEscenas(visibles)) {
       const seccion = el('section', 'lectura-escena');
       if (grupo.escena) {
         const titulo = el('div', 'lectura-escena-titulo');
         titulo.append(el('span', 'lectura-escena-numero', `Escena ${grupo.numero}`));
-        if (grupo.escena.texto.trim()) titulo.append(texto(grupo.escena, 'lectura-escena-texto'));
+        if (tieneTexto(grupo.escena)) titulo.append(texto(grupo.escena, 'lectura-escena-texto'));
         if (grupo.segundos) titulo.append(el('span', 'lectura-escena-duracion', Guion.formatoDuracion(grupo.segundos)));
         seccion.append(titulo);
       }
-      for (const b of grupo.bloques) if (b.texto.trim()) seccion.append(bloqueVideo(b));
+      for (const b of grupo.bloques) if (tieneTexto(b)) seccion.append(bloqueVideo(b));
       contenedor.append(seccion);
     }
   }
@@ -121,7 +138,7 @@ const Vista = (() => {
     const pagina = el('div', 'guion-cine');
     let numero = 0;
     for (const b of guion.bloques) {
-      if (!b.texto.trim() && !(b.tipo === 'camara' && b.personaje)) continue;
+      if (!tieneTexto(b) && !(b.tipo === 'camara' && b.personaje)) continue;
       if (b.tipo === 'escena') {
         const linea = el('div', 'cine-escena');
         linea.append(el('span', 'cine-numero', String(++numero)), texto(b, 'cine-escena-texto'));
@@ -142,11 +159,13 @@ const Vista = (() => {
   function render(guion, contenedor, opciones = {}) {
     edicion = opciones.editable ? { alCambiar: opciones.alCambiar || (() => {}) } : null;
     citas = (opciones.citas || []).filter((c) => c && c.texto);
+    antes = opciones.antes || null;
     contenedor.replaceChildren(cabecera(guion));
     contenedor.className = `lectura lectura-formato-${guion.formato}${edicion ? ' en-edicion' : ''}`;
     ({ sencillo, video, cine }[guion.formato] || video)(guion, contenedor);
     edicion = null;
     citas = [];
+    antes = null;
   }
 
   return { render };

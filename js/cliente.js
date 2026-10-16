@@ -23,6 +23,23 @@
   const fecha = (ms) => new Date(ms).toLocaleDateString('es', { day: 'numeric', month: 'long' });
   const fechaHora = (ms) => new Date(ms).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
+  // Ventanas propias en vez de confirm()/alert(): los navegadores de WhatsApp
+  // o Instagram a veces no muestran las del sistema y el botón parece no hacer nada.
+  function preguntar(texto, { si = 'Sí', no = 'Cancelar' } = {}) {
+    const dialogo = $('dialogo-pregunta');
+    $('pregunta-texto').textContent = texto;
+    $('pregunta-si').textContent = si;
+    $('pregunta-no').textContent = no;
+    $('pregunta-no').hidden = !no;
+    dialogo.returnValue = '';
+    dialogo.showModal();
+    return new Promise((resolver) => {
+      dialogo.addEventListener('close', () => resolver(dialogo.returnValue === 'si'), { once: true });
+    });
+  }
+
+  const avisar = (texto) => preguntar(texto, { si: 'Entendido', no: '' });
+
   async function pedir(metodo, ruta, datos) {
     let r;
     try {
@@ -86,7 +103,7 @@
     const estado = $('estado-guion');
     estado.textContent = actual.aprobado ? `✓ Aprobaste este guión el ${fecha(actual.aprobado)}` : 'Pendiente de tu revisión';
     estado.className = `estado-guion ${actual.aprobado ? 'aprobado' : 'pendiente'}`;
-    $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar';
+    $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar guión';
     $('editar').classList.toggle('activa', editando);
     $('aprobar').hidden = !!actual.aprobado || editando;
     $('ayuda-edicion').hidden = !editando;
@@ -146,7 +163,7 @@
         // aifotos lo cambió mientras tanto: se muestra su versión.
         reemplazar(e.datos.guion);
         estadoGuardado('');
-        alert('aifotos acaba de actualizar este guión, así que te mostramos la versión nueva. Si cambiaste algo hace unos segundos, revisa que siga ahí.');
+        avisar('aifotos acaba de actualizar este guión, así que te mostramos la versión nueva. Si cambiaste algo hace unos segundos, revisa que siga ahí.');
       } else {
         estadoGuardado('Sin conexión · reintentando…', true);
         temporizador = setTimeout(guardarYa, 4000);
@@ -170,7 +187,7 @@
       pintarGuion();
       return;
     }
-    if (actual.aprobado && !confirm('Ya aprobaste este guión. Si cambias algo, tendrás que volver a aprobarlo. ¿Quieres editarlo?')) return;
+    if (actual.aprobado && !(await preguntar('Ya aprobaste este guión. Si cambias algo, tendrás que volver a aprobarlo. ¿Quieres editarlo?', { si: 'Sí, editar' }))) return;
     editando = true;
     pintarGuion();
     $('lectura').querySelector('textarea')?.focus({ preventScroll: true });
@@ -179,14 +196,14 @@
   // ---------- Aprobar ----------
 
   $('aprobar').addEventListener('click', async () => {
-    if (!confirm('¿Aprobar este guión? aifotos sabrá que estás de acuerdo con el texto.')) return;
+    if (!(await preguntar('¿Aprobar este guión? aifotos sabrá que estás de acuerdo con el texto.', { si: 'Sí, aprobar' }))) return;
     if (hayCambios()) await guardarYa();
     try {
       const { aprobado } = await pedir('POST', `/guiones/${actual.id}/aprobar`);
       actual.aprobado = aprobado;
       pintarEstado();
     } catch (e) {
-      alert(`No se pudo aprobar: ${e.message}`);
+      avisar(`No se pudo aprobar: ${e.message}`);
     }
   });
 
@@ -231,7 +248,7 @@
       (actual.comentarios ||= []).push(comentario);
       return comentario;
     } catch (err) {
-      alert(`No se pudo enviar el comentario: ${err.message}`);
+      avisar(`No se pudo enviar el comentario: ${err.message}`);
       return null;
     }
   }
@@ -261,15 +278,40 @@
     seleccion = null;
   }
 
-  function revisarSeleccion() {
+  // Dónde se soltó el dedo o el ratón por última vez: en modo editar sirve
+  // para poner la burbuja junto a la frase (dentro de un campo no hay otra forma).
+  let ultimoPuntero = null;
+  document.addEventListener('pointerup', (e) => { ultimoPuntero = { x: e.clientX, y: e.clientY }; }, true);
+
+  // Frase seleccionada al leer: la selección normal de la página.
+  function seleccionAlLeer() {
     const sel = window.getSelection();
-    if (editando || !actual || $('guion').hidden || !sel.rangeCount || sel.isCollapsed) return ocultarBurbuja();
+    if (!sel.rangeCount || sel.isCollapsed) return null;
     const texto = sel.toString().trim();
     const nodo = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
-    if (texto.length < 2 || !$('lectura').contains(nodo)) return ocultarBurbuja();
-    seleccion = { texto: texto.slice(0, 600), bloque: nodo.closest('[data-bloque]')?.dataset.bloque || '' };
+    if (texto.length < 2 || !$('lectura').contains(nodo)) return null;
+    return { texto, bloque: nodo.closest('[data-bloque]')?.dataset.bloque || '', caja: sel.getRangeAt(0).getBoundingClientRect() };
+  }
 
-    const caja = sel.getRangeAt(0).getBoundingClientRect();
+  // Frase seleccionada al editar: el trozo marcado dentro del campo de texto.
+  function seleccionAlEditar() {
+    const campo = document.activeElement;
+    if (!campo || campo.tagName !== 'TEXTAREA' || !$('lectura').contains(campo)) return null;
+    const texto = campo.value.slice(campo.selectionStart, campo.selectionEnd).trim();
+    if (texto.length < 2) return null;
+    const r = campo.getBoundingClientRect();
+    const puntero = ultimoPuntero && ultimoPuntero.y >= r.top - 4 && ultimoPuntero.y <= r.bottom + 4 ? ultimoPuntero : null;
+    const caja = puntero ? { left: puntero.x, width: 0, bottom: puntero.y + 6 } : { left: r.left, width: r.width, bottom: r.bottom };
+    return { texto, bloque: campo.dataset.bloque || '', caja };
+  }
+
+  function revisarSeleccion() {
+    if (!actual || $('guion').hidden) return ocultarBurbuja();
+    const encontrada = editando ? seleccionAlEditar() : seleccionAlLeer();
+    if (!encontrada) return ocultarBurbuja();
+    seleccion = { texto: encontrada.texto.slice(0, 600), bloque: encontrada.bloque };
+
+    const { caja } = encontrada;
     const burbuja = $('burbuja');
     burbuja.hidden = false;
     const ancho = burbuja.offsetWidth;
@@ -278,10 +320,13 @@
     burbuja.style.top = `${caja.bottom + window.scrollY + 10}px`;
   }
 
-  document.addEventListener('selectionchange', () => {
+  function revisarEnUnMomento() {
     clearTimeout(esperaSeleccion);
     esperaSeleccion = setTimeout(revisarSeleccion, 120);
-  });
+  }
+  document.addEventListener('selectionchange', revisarEnUnMomento);
+  // Dentro de un campo de texto no todos los navegadores avisan con selectionchange.
+  for (const evento of ['select', 'mouseup', 'keyup', 'touchend']) $('lectura').addEventListener(evento, revisarEnUnMomento);
 
   // pointerdown (no click): en el celular, tocar fuera borra la selección antes del click.
   $('burbuja').addEventListener('pointerdown', (e) => {
@@ -307,6 +352,7 @@
     });
     if (!comentario) return;
     window.getSelection().removeAllRanges();
+    if (hayCambios()) await guardarYa();
     pintarGuion();
     irA($('comentarios-lista').querySelector(`[data-id="${comentario.id}"]`));
   });

@@ -1,7 +1,5 @@
 /* Página del cliente: leer, editar, aprobar y comentar. Pensada primero para el celular. */
 
-.pagina-cliente { --alto-barra-acciones: 76px; }
-
 .barra-cliente {
   margin-left: auto;
   font-weight: 600;
@@ -18,7 +16,7 @@
 .cliente-principal {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 28px 24px calc(var(--alto-barra-acciones) + 48px);
+  padding: 20px 24px 64px;
 }
 .cliente-estado { text-align: center; color: var(--tinta-suave); padding: 15vh 0; font-size: 17px; }
 .cliente-volver { margin: 0 0 12px -6px; }
@@ -39,21 +37,16 @@
   align-items: start;
 }
 
-.hoja-estado { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 32px; margin-bottom: 12px; }
 .estado-guion { font-weight: 600; border-radius: 999px; padding: 5px 14px; font-size: 14px; }
 .estado-guion.aprobado { background: #E8F1EE; color: #2F5A52; }
 .estado-guion.pendiente { background: #FFF3DD; color: #7A4E07; }
-.hoja-estado .guardado { font-size: 14px; }
 
 .cliente-nota {
   margin: 0 0 12px;
   font-size: 14px;
   color: var(--tinta-suave);
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
 }
-.cliente-nota::before { content: "💡"; }
+.cliente-nota::before { content: "💡"; margin-right: 8px; }
 .cliente-nota.editar {
   background: #FFF8EC;
   border: 1px solid #F3DDB3;
@@ -69,15 +62,15 @@
 
 .cliente-comentarios {
   position: sticky;
-  top: 76px;
-  max-height: calc(100vh - 76px - var(--alto-barra-acciones) - 24px);
+  top: 132px;
+  max-height: calc(100vh - 152px);
   overflow-y: auto;
   background: var(--papel);
   border: 1px solid var(--linea);
   border-radius: 14px;
   box-shadow: var(--sombra);
   padding: 18px;
-  margin-top: 44px;
+  margin-top: 0;
 }
 .cliente-comentarios h2 { font-size: 17px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
 .contador:empty { display: none; }
@@ -111,23 +104,26 @@
 .lectura.en-edicion .lectura-bloque, .lectura.en-edicion .cine-dialogo,
 .lectura.en-edicion .cine-accion, .lectura.en-edicion .cine-transicion { margin-bottom: 20px; }
 
-/* ---------- Barra de acciones flotante ---------- */
+/* ---------- Barra del guion: estado y botones, siempre a la vista arriba ---------- */
 
-.acciones-flotantes {
-  position: fixed;
-  left: 50%;
-  bottom: 20px;
-  transform: translateX(-50%);
-  z-index: 30;
+.barra-guion {
+  position: sticky;
+  top: 56px;
+  z-index: 20;
   display: flex;
-  gap: 8px;
-  padding: 8px;
-  background: rgba(255, 255, 255, .92);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--linea);
-  border-radius: 999px;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, .14);
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 -8px 14px;
+  padding: 10px 8px;
+  background: rgba(246, 244, 240, .95);
+  backdrop-filter: blur(8px);
 }
+.barra-guion-estado { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.barra-guion-estado .guardado { font-size: 14px; }
+.barra-guion-acciones { display: flex; gap: 8px; }
+
 .accion {
   display: inline-flex;
   align-items: center;
@@ -188,17 +184,12 @@
 }
 
 @media (max-width: 760px) {
-  .pagina-cliente { --alto-barra-acciones: 72px; }
-  .cliente-principal { padding: 16px 12px calc(var(--alto-barra-acciones) + 32px); }
+  .cliente-principal { padding: 8px 12px 48px; }
   .cliente-hoja .lectura { padding: 26px 18px; }
-  .acciones-flotantes {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transform: none;
-    border-radius: 0;
-    border-width: 1px 0 0;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  }
+  .barra-guion { margin: 0 -12px 12px; padding: 10px 12px; }
+  .barra-guion-acciones { width: 100%; }
   .accion { flex: 1; padding: 0 12px; }
 }
+
+.dialogo-pregunta { width: min(420px, calc(100vw - 32px)); }
+.dialogo-pregunta p { margin: 0; font-size: 17px; line-height: 1.5; }
