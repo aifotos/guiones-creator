@@ -87,7 +87,9 @@
   let avisoTiempo = null;
   // accion (opcional): { texto, alPulsar } añade un botón al aviso, que dura más.
   function avisar(texto, accion) {
-    aviso.replaceChildren(texto);
+    const check = elemento('span', 'aviso-check');
+    check.append(UI.icono('check', 14));
+    aviso.replaceChildren(check, elemento('span', 'aviso-texto', texto));
     if (accion) {
       const boton = document.createElement('button');
       boton.className = 'aviso-accion';
@@ -296,7 +298,6 @@
   // Muestra la frase comentada: en la vista del cliente sale resaltada; si ya
   // no está igual (porque se cambió), se señala el bloque donde estaba.
   function verFrase(c) {
-    verCambios = false;
     cambiarModo('leer');
     const marca = $('modo-leer').querySelector(`mark[data-comentario="${c.id}"]`)
       || $('modo-leer').querySelector(`[data-bloque="${c.cita.bloque}"]`);
@@ -380,6 +381,7 @@
     if (!clientes.length) lista.append(elemento('li', 'lista-vacia', 'Aún no hay clientes.'));
     $('contador-inicio').textContent = totalNovedades();
     Chat.contarEnPestana('Guiones Creator · aifotos', totalNovedades());
+    if (vista === 'inicio') pintarInicio();
   }
 
   // Cuántas cosas nuevas hizo el cliente en todos los guiones (para la pestaña y el sonido).
@@ -426,12 +428,145 @@
     actual = null;
     clienteAbierto = null;
     mostrar('inicio');
-    pintarInicio();
-    pintarLista();
+    pintarLista(); // también pinta Inicio
+    $('inicio').scrollTop = 0;
   }
 
-  // La pantalla de Inicio se dibuja en su propia fase del rediseño.
-  function pintarInicio() {}
+  // ---------- Inicio: saludo, lo nuevo y tus clientes ----------
+
+  // "hace 12 min", "hace 3 h", "ayer", "lunes" o "2 oct".
+  function haceCuanto(ms) {
+    const minutos = Math.round((Date.now() - ms) / 60000);
+    if (minutos < 1) return 'ahora';
+    if (minutos < 60) return `hace ${minutos} min`;
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    if (ms >= hoy.getTime()) return `hace ${Math.round(minutos / 60)} h`;
+    const dias = Math.ceil((hoy.getTime() - ms) / 86400000);
+    if (dias <= 1) return 'ayer';
+    if (dias < 7) return new Date(ms).toLocaleDateString('es', { weekday: 'long' });
+    return fecha(ms);
+  }
+
+  // Tarjetas de "Lo nuevo": colores y giro de cada tipo, como en el prototipo.
+  const TARJETA_NOVEDAD = {
+    editó: { tipo: 'Editó', verbo: 'cambió', fondo: '#c67139', texto: '#f9f4ed', chip: 'rgba(255,255,255,.22)', giro: '-1.2deg' },
+    comentó: { tipo: 'Mensaje', verbo: 'te escribió sobre', fondo: '#201e1d', texto: '#f5ead8', chip: 'rgba(255,255,255,.14)', giro: '.8deg' },
+    aprobó: { tipo: 'Aprobado', verbo: 'aprobó', fondo: '#7a8a5e', texto: '#f9f4ed', chip: 'rgba(255,255,255,.22)', giro: '-.5deg' },
+  };
+
+  function momentoNovedad(g, que) {
+    if (que === 'aprobó') return g.aprobado;
+    if (que === 'comentó') return Math.max(0, ...(g.comentarios || []).filter((c) => c.autor === 'cliente').map((c) => c.creado));
+    return g.actualizado;
+  }
+
+  function pintarInicio() {
+    const ahora = new Date();
+    const dia = ahora.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
+    $('inicio-fecha').textContent = dia.charAt(0).toUpperCase() + dia.slice(1);
+    const hora = ahora.getHours();
+    $('inicio-hola').textContent = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+
+    // Lo nuevo: lo que hicieron los clientes desde la última vez que abriste cada guion.
+    const eventos = [];
+    for (const g of Almacen.listar()) {
+      const c = Almacen.obtenerCliente(g.cliente_id);
+      if (!c) continue;
+      for (const que of novedades(g)) eventos.push({ g, c, que, cuando: momentoNovedad(g, que) });
+    }
+    eventos.sort((a, b) => b.cuando - a.cuando);
+    const n = eventos.length;
+    $('inicio-resumen').textContent = n
+      ? `Hay ${n} ${n === 1 ? 'cosa nueva' : 'cosas nuevas'} de tus clientes. Empieza por la de arriba.`
+      : 'No hay nada nuevo de tus clientes. Todo al día.';
+    const feed = $('feed');
+    feed.replaceChildren();
+    for (const { g, c, que, cuando } of eventos) {
+      const t = TARJETA_NOVEDAD[que];
+      const tarjeta = elemento('button', 'feed-tarjeta');
+      tarjeta.style.background = t.fondo;
+      tarjeta.style.color = t.texto;
+      tarjeta.style.setProperty('--giro', t.giro);
+      const arriba = elemento('span', 'feed-arriba');
+      const chip = elemento('span', 'feed-tipo', t.tipo);
+      chip.style.background = t.chip;
+      arriba.append(chip, elemento('span', 'feed-cuando', haceCuanto(cuando)));
+      const frase = elemento('span', 'feed-frase');
+      frase.append(elemento('b', '', c.nombre), ` ${t.verbo} `, elemento('span', 'feed-titulo', `«${g.titulo || 'Guión sin título'}»`));
+      const abajo = elemento('span', 'feed-abajo');
+      abajo.append(elemento('span', '', c.nombre), elemento('span', '', 'Abrir →'));
+      tarjeta.append(arriba, frase, abajo);
+      tarjeta.addEventListener('click', () => {
+        abrir(g.id);
+        if (que === 'comentó') chatFlotante.abrir();
+      });
+      feed.append(tarjeta);
+    }
+    if (!n) feed.append(elemento('p', 'feed-vacio', 'Cuando un cliente edite, comente o apruebe un guión, aparecerá aquí.'));
+
+    // Tus clientes
+    const caja = $('tarjetas-clientes');
+    caja.replaceChildren();
+    for (const c of Almacen.listarClientes()) {
+      const guiones = Almacen.guionesDe(c.id);
+      const tarjeta = elemento('div', 'cliente-tarjeta');
+      const cabeza = elemento('button', 'cliente-tarjeta-cabeza');
+      const datos = elemento('span', 'cliente-tarjeta-datos');
+      const ultima = Math.max(c.creado || 0, ...guiones.map((g) => g.actualizado));
+      datos.append(
+        elemento('span', 'cliente-tarjeta-nombre', c.nombre),
+        elemento('span', 'cliente-tarjeta-sub', `${guiones.length} ${guiones.length === 1 ? 'guión' : 'guiones'} · ${haceCuanto(ultima)}`),
+      );
+      cabeza.append(UI.avatar(c.nombre, indiceCliente(c.id), 'avatar avatar-grande'), datos);
+      const sinLeer = guiones.reduce((m, g) => m + novedades(g).length, 0);
+      if (sinLeer) cabeza.append(elemento('span', 'cliente-tarjeta-sin-leer', `${sinLeer} sin leer`));
+      cabeza.addEventListener('click', () => abrirCliente(c.id));
+
+      const lista = elemento('div', 'cliente-tarjeta-guiones');
+      for (const g of guiones) {
+        const e = estadoDe(g);
+        const fila = elemento('button', 'cliente-tarjeta-guion');
+        const punto = elemento('span', 'punto-estado');
+        punto.style.background = e.punto;
+        const textos = elemento('span', 'cliente-tarjeta-textos');
+        textos.append(
+          elemento('span', 'cliente-tarjeta-titulo', g.titulo || 'Guión sin título'),
+          elemento('span', 'cliente-tarjeta-info', `${Guion.FORMATOS[g.formato || 'video'].nombre} · ${haceCuanto(g.actualizado)}`),
+        );
+        const pildora = elemento('span', 'cliente-tarjeta-estado', e.etiqueta);
+        pildora.style.background = e.fondo;
+        pildora.style.color = e.texto;
+        fila.append(punto, textos, pildora);
+        fila.addEventListener('click', () => abrir(g.id));
+        lista.append(fila);
+      }
+
+      const link = elemento('div', 'cliente-tarjeta-link');
+      const url = Almacen.linkDe(c);
+      const copiar = elemento('button', 'link-copiar-mini', 'Copiar');
+      copiar.addEventListener('click', () => copiarLink(c));
+      const whatsapp = elemento('button', 'link-whatsapp-mini', 'WhatsApp');
+      whatsapp.addEventListener('click', () => enviarWhatsApp(c));
+      link.append(UI.icono('link', 14), elemento('span', 'cliente-tarjeta-url', `…/${url.split('/').pop()}`), copiar, whatsapp);
+
+      const pie = elemento('div', 'cliente-tarjeta-pie');
+      const caduco = linkCaducado(c);
+      pie.append(elemento('span', '', !c.activo ? 'Link desactivado'
+        : caduco ? `El link caducó el ${fecha(c.caduca)}`
+          : c.caduca ? `El link caduca el ${fecha(c.caduca)}` : 'Link sin fecha de caducidad'));
+      const mas = elemento('button', 'cliente-tarjeta-mas', '+ Guión');
+      mas.addEventListener('click', () => {
+        clienteAbierto = c.id; // para que el diálogo ya lo traiga elegido
+        abrirNuevo();
+        clienteAbierto = null;
+      });
+      pie.append(mas);
+
+      tarjeta.append(cabeza, lista, link, pie);
+      caja.append(tarjeta);
+    }
+    if (!caja.children.length) caja.append(elemento('p', 'feed-vacio', 'Aún no tienes clientes. Crea el primero con «+ Cliente nuevo».'));
+  }
 
   // Guiones antiguos sin formato; el formato sencillo es un único texto.
   function normalizar(g) {
@@ -1193,7 +1328,8 @@
     const guion = actual;
     $('historial-lista').replaceChildren(elemento('li', 'lista-vacia', 'Cargando versiones…'));
     $('historial-lectura').replaceChildren();
-    $('historial-comparar').checked = false;
+    $('historial-sub').textContent = `${guion.titulo || 'Guión sin título'} · se guarda cada «Listo» del cliente y una copia cada 10 min`;
+    $('historial-comparar').checked = true;
     $('dialogo-historial').showModal();
     try {
       historial = await Almacen.versiones(guion.id);
@@ -1206,19 +1342,32 @@
     elegirVersion(null);
   }
 
+  // Tipo de cada versión, con los colores del prototipo.
+  const TIPO_VERSION = {
+    cliente: ['Listo del cliente', '#ffe1d0', '#8c491a'],
+    admin: ['Copia automática', '#eee7db', '#645c50'],
+    actual: ['Actual', '#201e1d', '#f5ead8'],
+  };
+
   function pintarHistorial() {
     const lista = $('historial-lista');
     lista.replaceChildren();
-    const ahora = { id: null, autor: actual.editado_por || 'admin', fecha: actual.actualizado, bloques: actual.bloques, actual: true };
+    const ahora = { id: null, version: actual.version, autor: actual.editado_por || 'admin', fecha: actual.actualizado, bloques: actual.bloques, actual: true };
     for (const v of [ahora, ...historial]) {
       const li = elemento('li');
       const boton = elemento('button', `historial-item${(elegida?.id ?? null) === v.id ? ' activo' : ''}`);
       boton.dataset.id = v.id ?? '';
       const quien = v.autor === 'cliente' ? (Almacen.obtenerCliente(actual.cliente_id)?.nombre || 'Cliente') : 'Tú';
+      const [tipo, fondo, texto] = TIPO_VERSION[v.actual ? 'actual' : v.autor] || TIPO_VERSION.admin;
+      const cabeza = elemento('span', 'historial-cabeza');
+      const pildora = elemento('span', 'historial-tipo', tipo);
+      pildora.style.background = fondo;
+      pildora.style.color = texto;
+      cabeza.append(elemento('span', 'historial-v', `v${v.version}`), pildora);
       boton.append(
-        elemento('span', 'historial-fecha', v.actual ? 'Versión actual' : fechaHora(v.fecha)),
-        elemento('span', `historial-autor de-${v.autor}`, v.actual ? `Último cambio: ${quien}` : `Editado por ${quien}`),
-        elemento('span', 'lista-info', `${Guion.estadisticas(v.bloques).palabras} palabras`),
+        cabeza,
+        elemento('span', 'historial-quien', `${quien} · ${fechaHora(v.fecha)}`),
+        elemento('span', 'historial-nota', `${Guion.estadisticas(v.bloques).palabras} palabras`),
       );
       boton.addEventListener('click', () => elegirVersion(v.actual ? null : v));
       li.append(boton);
@@ -1230,22 +1379,36 @@
   function elegirVersion(v) {
     elegida = v;
     $('historial-lista').querySelectorAll('.historial-item').forEach((b) => b.classList.toggle('activo', b.dataset.id === (v?.id ?? '')));
-    $('historial-restaurar').hidden = !v;
-    $('historial-comparar').closest('label').hidden = !v;
+    $('historial-restaurar').textContent = `Restaurar v${(v || actual).version}`;
+    $('historial-restaurar').disabled = !v;
     pintarVistaHistorial();
   }
 
+  // Vista previa de una versión: cada bloque con su etiqueta. Al comparar, sobre el
+  // guion de hoy se tacha lo que ya no está y se marca en verde lo añadido después.
+  const FUENTE_HISTORIAL = { escena: 'escena', pantalla: 'pantalla', nota: 'nota', voz: 'voz' };
   function pintarVistaHistorial() {
     const comparar = !!elegida && $('historial-comparar').checked;
-    $('historial-leyenda').hidden = !comparar;
-    if (!elegida) return Vista.render(actual, $('historial-lectura'));
-    const version = { ...actual, titulo: elegida.titulo, formato: elegida.formato, bloques: elegida.bloques };
-    if (comparar) {
-      // Sobre el guion de hoy, marca lo que ha cambiado desde esa versión.
-      Vista.render(actual, $('historial-lectura'), { antes: new Map(elegida.bloques.map((b) => [b.id, b.texto])) });
-    } else {
-      Vista.render(version, $('historial-lectura'));
+    const caja = $('historial-lectura');
+    caja.replaceChildren();
+    const bloques = elegida && !comparar ? elegida.bloques : actual.bloques;
+    const formato = elegida && !comparar ? elegida.formato : actual.formato;
+    const antes = comparar ? new Map(elegida.bloques.map((b) => [b.id, b.texto])) : null;
+    for (const b of bloques) {
+      const previo = antes ? (antes.get(b.id) ?? '') : null;
+      if (!b.texto.trim() && !(previo || '').trim()) continue;
+      const fila = elemento('div', 'historial-bloque');
+      const texto = elemento('span', `historial-texto tipo-${FUENTE_HISTORIAL[b.tipo] || 'camara'}`);
+      if (antes && previo !== b.texto) {
+        for (const parte of Diferencias.comparar(previo, b.texto)) {
+          if (parte.tipo === 'igual') texto.append(parte.texto);
+          else texto.append(elemento(parte.tipo === 'borrado' ? 'del' : 'ins', '', parte.texto));
+        }
+      } else texto.append(b.texto);
+      fila.append(elemento('span', 'historial-etiqueta', formato === 'sencillo' ? 'Texto' : Guion.nombreTipo(b.tipo, formato)), texto);
+      caja.append(fila);
     }
+    if (!caja.children.length) caja.append(elemento('p', 'lista-vacia', 'Esta versión está vacía.'));
   }
 
   async function restaurarVersion() {
@@ -1297,6 +1460,25 @@
     if (propias.children.length) select.append(propias);
     select.value = [...select.options].some((o) => o.value === antes) ? antes : '';
     $('borrar-plantilla').hidden = !select.value.startsWith('m:');
+    pintarChipsPlantilla();
+  }
+
+  // Las plantillas se eligen con botones (el selector oculto guarda la elección).
+  function pintarChipsPlantilla() {
+    const select = $('nuevo-plantilla');
+    const caja = $('nuevo-plantillas');
+    caja.replaceChildren();
+    const opciones = [...select.options];
+    for (const o of [...opciones.filter((x) => x.value), ...opciones.filter((x) => !x.value)]) {
+      const chip = elemento('button', `plantilla-chip${o.value === select.value ? ' activo' : ''}`, o.textContent);
+      chip.type = 'button';
+      chip.addEventListener('click', () => {
+        select.value = o.value;
+        select.dispatchEvent(new Event('change'));
+        pintarChipsPlantilla();
+      });
+      caja.append(chip);
+    }
   }
 
   function plantillaElegida() {
@@ -1392,25 +1574,50 @@
     $('pegar-texto').focus();
   }
 
+  // Colores de cada tipo (los de los bloques del editor); escena y otros, en negro.
+  const COLOR_TIPO = {
+    camara: ['#ffe1d0', '#8c491a'], voz: ['#e1eecc', '#3d472b'],
+    pantalla: ['#FCE3B0', '#6b4a0c'], nota: ['#eee7db', '#645c50'],
+  };
+
   function resumenPegado() {
     const texto = $('pegar-texto').value;
+    const caja = $('pegar-resumen');
     $('pegar-crear').disabled = !texto.trim();
-    if (!texto.trim()) { $('pegar-resumen').textContent = ''; return; }
+    caja.replaceChildren();
+    caja.hidden = !texto.trim();
+    if (!texto.trim()) return;
     const formato = formatoPegado();
     const bloques = Guion.desdeTexto(texto, formato);
-    const auto = $('pegar-formato').value === 'auto' ? 'Formato detectado' : 'Formato';
-    let resumen = `${auto}: ${Guion.FORMATOS[formato].nombre}.`;
-    if (formato !== 'sencillo') {
-      const cuenta = {};
-      for (const b of bloques) cuenta[b.tipo] = (cuenta[b.tipo] || 0) + 1;
-      const partes = Guion.FORMATOS[formato].tipos.filter((t) => cuenta[t])
-        .map((t) => `${cuenta[t]} ${Guion.nombreTipo(t, formato, cuenta[t] !== 1).toLowerCase()}`);
-      const personajes = Guion.personajes({ bloques }).length;
-      if (personajes) partes.push(`${personajes} personaje${personajes === 1 ? '' : 's'}`);
-      resumen += ` Se detectaron: ${partes.join(', ')}.`;
+    caja.append(elemento('span', 'encontre-titulo', 'Encontré:'));
+    const chip = (txt, [fondo, color] = ['#201e1d', '#f5ead8']) => {
+      const c = elemento('span', 'encontre-chip', txt);
+      c.style.background = fondo;
+      c.style.color = color;
+      caja.append(c);
+    };
+    if (formato === 'sencillo') return chip(Guion.FORMATOS[formato].nombre.toLowerCase());
+    const cuenta = {};
+    for (const b of bloques) cuenta[b.tipo] = (cuenta[b.tipo] || 0) + 1;
+    for (const t of Object.keys(cuenta)) {
+      chip(`${cuenta[t]} ${Guion.nombreTipo(t, formato, cuenta[t] !== 1).toLowerCase()}`, COLOR_TIPO[t]);
     }
-    $('pegar-resumen').textContent = resumen;
   }
+
+  // "Desde cero | Pegar uno que ya tengo": pasa de un diálogo al otro sin perder título ni cliente.
+  function cambiarDialogo(de, a) {
+    const titulo = $(`${de}-titulo`).value;
+    const cliente = $(`${de}-cliente`).value;
+    const nombreNuevo = $(`${de}-cliente-nuevo`).value;
+    $(`dialogo-${de}`).close();
+    (a === 'pegar' ? abrirPegar : abrirNuevo)();
+    $(`${a}-titulo`).value = titulo;
+    $(`${a}-cliente`).value = cliente;
+    $(`${a}-cliente-nuevo`).value = nombreNuevo;
+    alternarClienteNuevo(a);
+  }
+  $('nuevo-a-pegar').addEventListener('click', () => cambiarDialogo('nuevo', 'pegar'));
+  $('pegar-a-nuevo').addEventListener('click', () => cambiarDialogo('pegar', 'nuevo'));
 
   $('dialogo-pegar').addEventListener('close', () => {
     if ($('dialogo-pegar').returnValue !== 'crear') return;
@@ -1420,8 +1627,19 @@
 
   // ---------- Eliminar ----------
 
+  // Confirmación con el diálogo del prototipo; responde true si se pulsa "Sí, eliminar".
+  function confirmarBorrado(titulo, texto) {
+    $('borrar-titulo').textContent = titulo;
+    $('borrar-texto').textContent = texto;
+    $('dialogo-borrar').returnValue = '';
+    $('dialogo-borrar').showModal();
+    return new Promise((resolver) => $('dialogo-borrar').addEventListener('close', () => resolver($('dialogo-borrar').returnValue === 'eliminar'), { once: true }));
+  }
+
   $('borrar').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar "${actual.titulo || 'Guión sin título'}"? No se puede deshacer.`)) return;
+    const contacto = Almacen.obtenerCliente(actual.cliente_id)?.nombre || 'Tu cliente';
+    if (!(await confirmarBorrado(`¿Eliminar «${actual.titulo || 'Guión sin título'}»?`,
+      `Se borran el guión, su chat con ${contacto} y todo su historial. ${contacto} dejará de verlo en su link. Esto no se puede deshacer.`))) return;
     clearTimeout(temporizador);
     temporizador = null;
     const { id, cliente_id: clienteId } = actual;
@@ -1571,7 +1789,7 @@
 
   // ---------- Caducidad del link ----------
 
-  const linkCaducado = (c) => !!c.caduca && c.caduca <= Date.now();
+  function linkCaducado(c) { return !!c.caduca && c.caduca <= Date.now(); }
   const fechaParaCampo = (ms) => {
     const d = new Date(ms);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1643,13 +1861,7 @@
       return;
     }
 
-    let ultimo = null;
-    try { ultimo = localStorage.getItem('guiones-creator:ultimo'); } catch {}
-    const [tipo, id] = (ultimo || '').split(':');
-    if (tipo === 'g' && Almacen.obtener(id)) abrir(id);
-    else if (tipo === 'c' && Almacen.obtenerCliente(id)) abrirCliente(id);
-    else if (Almacen.listarClientes().length) abrirCliente(Almacen.listarClientes()[0].id);
-    else abrir(null);
+    irAInicio(); // al entrar, siempre Inicio
   }
 
   $('form-acceso').addEventListener('submit', async (e) => {
@@ -1678,28 +1890,32 @@
     try { pintarIndicadorTelegram((await Almacen.avisos()).telegram.conectado); } catch { /* sin conexión: se deja como está */ }
   }
 
+  function estadoAvisos(texto, conectado = false) {
+    $('avisos-estado-texto').textContent = texto;
+    $('ajustes-telegram').classList.toggle('conectado', conectado);
+  }
+
   async function pintarAvisosTelegram() {
     $('avisos-error').textContent = '';
     let estado;
     try {
       ({ telegram: estado } = await Almacen.avisos());
     } catch (e) {
-      $('avisos-estado').textContent = `No se pudo consultar: ${e.message}`;
+      estadoAvisos('Sin conectar');
+      $('avisos-error').textContent = `No se pudo consultar: ${e.message}`;
       return;
     }
     pintarIndicadorTelegram(estado.conectado);
-    $('avisos-estado').textContent = !estado.token
-      ? 'Falta el primer paso: crear tu bot en Telegram y guardar su código en Cloudflare (Claude te guía).'
-      : estado.conectado ? `✅ Conectado con ${estado.nombre || "tu Telegram"}.` : 'El bot está listo, falta conectarlo a tu Telegram:';
-    $('avisos-estado').className = `avisos-estado ${estado.conectado ? 'conectado' : ''}`;
+    estadoAvisos(estado.conectado ? `Conectado${estado.bot ? ` · @${estado.bot}` : ''}` : 'Sin conectar', estado.conectado);
+    $('avisos-nota').hidden = !!estado.token;
+    $('avisos-nota').textContent = 'Falta el primer paso: crear tu bot en Telegram y guardar su código en Cloudflare (Claude te guía).';
     $('avisos-pasos').hidden = !estado.token || estado.conectado;
     $('avisos-abrir-bot').hidden = !estado.bot || estado.conectado;
     if (estado.bot) {
       $('avisos-abrir-bot').href = `https://t.me/${estado.bot}?start=conectar`;
       $('avisos-bot-nombre').textContent = ` (@${estado.bot})`;
     }
-    $('avisos-conectar').hidden = !estado.token;
-    $('avisos-conectar').textContent = estado.conectado ? 'Conectar otro Telegram' : 'Conectar Telegram';
+    $('avisos-conectar').hidden = !estado.token || estado.conectado;
     $('avisos-prueba').hidden = !estado.conectado;
     $('avisos-desconectar').hidden = !estado.conectado;
   }
@@ -1719,7 +1935,7 @@
   }
 
   $('abrir-avisos').addEventListener('click', () => {
-    $('avisos-estado').textContent = 'Comprobando…';
+    estadoAvisos('Comprobando…');
     $('dialogo-avisos').showModal();
     pintarAvisosTelegram();
   });
@@ -1751,6 +1967,9 @@
   $('ir-inicio').addEventListener('click', irAInicio);
   $('movil-inicio').addEventListener('click', irAInicio);
   $('movil-nuevo').addEventListener('click', abrirNuevo);
+  $('inicio-nuevo').addEventListener('click', abrirNuevo);
+  $('inicio-pegar').addEventListener('click', abrirPegar);
+  $('inicio-cliente-nuevo').addEventListener('click', nuevoCliente);
   $('movil-ajustes').addEventListener('click', () => $('abrir-avisos').click());
   $('movil-volver').addEventListener('click', () => (vista === 'documento' && modo === 'leer' ? cambiarModo('editar') : irAInicio()));
   $('movil-chat').addEventListener('click', () => chatFlotante.abrir());
