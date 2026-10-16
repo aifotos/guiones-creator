@@ -136,6 +136,27 @@ const Almacen = (() => {
     return (await pedir('GET', `/api/guiones/${id}/cambios`)).cambios;
   }
 
+  // Plantillas propias
+  const plantillas = async () => (await pedir('GET', '/api/plantillas')).plantillas;
+  const crearPlantilla = (nombre, guion) => pedir('POST', '/api/plantillas', {
+    nombre, formato: guion.formato, bloques: guion.bloques.map(({ id, ...resto }) => ({ id: '', ...resto })),
+  });
+  const borrarPlantilla = (id) => pedir('DELETE', `/api/plantillas/${id}`);
+
+  // Copia de seguridad: descarga un archivo .json con todo.
+  async function respaldo() {
+    const r = await fetch(`${CONFIG.api}/api/respaldo`, { headers: { Authorization: `Bearer ${sesion}` } });
+    if (!r.ok) throw new Error('No se pudo preparar la copia de seguridad');
+    const nombre = (r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || 'guiones-creator-respaldo.json';
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(await r.blob());
+    enlace.download = nombre;
+    document.body.append(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(enlace.href), 5000);
+  }
+
   // Historial y bloqueo
   const versiones = async (id) => (await pedir('GET', `/api/guiones/${id}/versiones`)).versiones;
   async function desbloquear(guion) {
@@ -162,6 +183,6 @@ const Almacen = (() => {
     crearCliente, editarCliente, regenerarLink, borrarCliente,
     crear, guardar, reemplazar, borrar, comentar, cambios,
     avisos, conectarTelegram, pruebaTelegram, desconectarTelegram,
-    versiones, desbloquear,
+    versiones, desbloquear, plantillas, crearPlantilla, borrarPlantilla, respaldo,
   };
 })();

@@ -307,6 +307,7 @@
       const cabecera = elemento('button', 'grupo-cliente' + (clienteAbierto === c.id ? ' activo' : ''));
       cabecera.append(elemento('span', 'grupo-nombre', c.nombre));
       if (!c.activo) cabecera.append(elemento('small', 'grupo-apagado', 'link apagado'));
+      else if (linkCaducado(c)) cabecera.append(elemento('small', 'grupo-apagado', 'link caducado'));
       if (guiones.some((g) => novedades(g).length)) cabecera.append(elemento('span', 'punto-nuevo'));
       cabecera.append(elemento('small', 'grupo-cuenta', String(guiones.length)));
       cabecera.addEventListener('click', () => { abrirCliente(c.id); cerrarLateral(); });
@@ -414,12 +415,17 @@
     if (!c) return abrir(null);
     $('cliente-nombre').value = c.nombre;
     $('link-url').value = Almacen.linkDe(c);
-    $('link-caja').classList.toggle('apagado', !c.activo);
-    $('estado-link').textContent = c.activo ? 'Activo' : 'Desactivado';
-    $('estado-link').className = `estado-link ${c.activo ? 'activo' : 'inactivo'}`;
-    $('link-ayuda').textContent = c.activo
-      ? `Con este link, ${c.nombre} ve todos sus guiones. No necesita cuenta ni contraseña.`
-      : 'Este link está desactivado: quien lo abra no verá nada. Actívalo otra vez o genera uno nuevo.';
+    const caducado = linkCaducado(c);
+    const funciona = c.activo && !caducado;
+    $('link-caja').classList.toggle('apagado', !funciona);
+    $('estado-link').textContent = !c.activo ? 'Desactivado' : caducado ? 'Caducado' : 'Activo';
+    $('estado-link').className = `estado-link ${funciona ? 'activo' : 'inactivo'}`;
+    $('link-ayuda').textContent = !c.activo
+      ? 'Este link está desactivado: quien lo abra no verá nada. Actívalo otra vez o genera uno nuevo.'
+      : caducado
+        ? `Este link caducó el ${fecha(c.caduca)}: quien lo abra no verá nada. Cambia o quita la fecha para que vuelva a funcionar.`
+        : `Con este link, ${c.nombre} ve todos sus guiones. No necesita cuenta ni contraseña.${c.caduca ? ` Funciona hasta el ${fecha(c.caduca)}.` : ''}`;
+    $('cliente-caduca').value = c.caduca ? fechaParaCampo(c.caduca) : '';
     $('link-copiar').disabled = !c.activo;
     $('link-whatsapp').disabled = !c.activo;
     $('cliente-telefono').value = c.telefono || '';
@@ -1109,6 +1115,73 @@
   $('historial-comparar').addEventListener('change', pintarVistaHistorial);
   $('historial-restaurar').addEventListener('click', restaurarVersion);
 
+  // ---------- Plantillas ----------
+
+  let misPlantillas = [];
+
+  async function cargarMisPlantillas() {
+    try { misPlantillas = await Almacen.plantillas(); } catch { misPlantillas = []; }
+    llenarPlantillas();
+  }
+
+  function llenarPlantillas() {
+    const formato = document.querySelector('input[name="nuevo-formato"]:checked')?.value || 'video';
+    const select = $('nuevo-plantilla');
+    const antes = select.value;
+    select.replaceChildren(new Option('En blanco', ''));
+    const incluidas = elemento('optgroup');
+    incluidas.label = 'Plantillas de aifotos';
+    for (const p of Plantillas.incluidas(formato)) incluidas.append(new Option(p.nombre, `i:${p.id}`));
+    if (incluidas.children.length) select.append(incluidas);
+    const propias = elemento('optgroup');
+    propias.label = 'Mis plantillas';
+    for (const p of misPlantillas.filter((x) => x.formato === formato)) propias.append(new Option(p.nombre, `m:${p.id}`));
+    if (propias.children.length) select.append(propias);
+    select.value = [...select.options].some((o) => o.value === antes) ? antes : '';
+    $('borrar-plantilla').hidden = !select.value.startsWith('m:');
+  }
+
+  function plantillaElegida() {
+    const [origen, id] = $('nuevo-plantilla').value.split(':');
+    if (origen === 'i') return Plantillas.incluidas(document.querySelector('input[name="nuevo-formato"]:checked')?.value).find((p) => p.id === id);
+    if (origen === 'm') return misPlantillas.find((p) => p.id === id);
+    return null;
+  }
+
+  $('nuevo-plantilla').addEventListener('change', () => { $('borrar-plantilla').hidden = !$('nuevo-plantilla').value.startsWith('m:'); });
+  $('borrar-plantilla').addEventListener('click', async () => {
+    const p = plantillaElegida();
+    if (!p || !confirm(`¿Eliminar la plantilla «${p.nombre}»? Los guiones que ya creaste con ella no cambian.`)) return;
+    if ((await intentar(() => Almacen.borrarPlantilla(p.id), 'No se pudo eliminar la plantilla')) === null) return;
+    misPlantillas = misPlantillas.filter((x) => x.id !== p.id);
+    llenarPlantillas();
+  });
+
+  $('guardar-plantilla').addEventListener('click', async () => {
+    const nombre = (prompt('Nombre de la plantilla (la verás al crear un guión nuevo):', actual.titulo || '') || '').trim();
+    if (!nombre) return;
+    if (hayCambiosSinGuardar()) await guardarYa();
+    const hecha = await intentar(() => Almacen.crearPlantilla(nombre, actual), 'No se pudo guardar la plantilla');
+    if (hecha) avisar(`Plantilla «${nombre}» guardada. La verás en «+ Nuevo guión».`);
+  });
+
+  // ---------- PDF y teleprompter ----------
+
+  $('exportar-pdf').addEventListener('click', async () => {
+    if (hayCambiosSinGuardar()) await guardarYa();
+    Exportar.pdf(actual, { cliente: Almacen.obtenerCliente(actual.cliente_id)?.nombre });
+  });
+  $('abrir-teleprompter').addEventListener('click', () => Teleprompter.abrir(actual));
+
+  // ---------- Copia de seguridad ----------
+
+  $('descargar-respaldo').addEventListener('click', async () => {
+    $('descargar-respaldo').disabled = true;
+    const hecho = await intentar(async () => { await Almacen.respaldo(); return true; }, 'No se pudo descargar la copia');
+    $('descargar-respaldo').disabled = false;
+    if (hecho) avisar('Copia de seguridad descargada (carpeta Descargas)');
+  });
+
   // ---------- Nuevo guión ----------
 
   function abrirNuevo() {
@@ -1123,8 +1196,11 @@
       radio.value = clave;
       radio.checked = clave === preferido;
       label.append(radio, elemento('b', '', f.nombre), elemento('span', '', f.descripcion));
+      radio.addEventListener('change', llenarPlantillas);
       caja.append(label);
     }
+    llenarPlantillas();
+    cargarMisPlantillas();
     $('nuevo-titulo').value = '';
     llenarClientes('nuevo');
     $('dialogo-nuevo').returnValue = '';
@@ -1135,7 +1211,8 @@
   $('dialogo-nuevo').addEventListener('close', async () => {
     if ($('dialogo-nuevo').returnValue !== 'crear') return;
     const formato = document.querySelector('input[name="nuevo-formato"]:checked')?.value || 'video';
-    const g = await crear('nuevo', $('nuevo-titulo').value.trim(), formato);
+    const plantilla = plantillaElegida();
+    const g = await crear('nuevo', $('nuevo-titulo').value.trim(), formato, plantilla ? Plantillas.bloquesDe(plantilla) : undefined);
     if (g) $(formato === 'sencillo' ? 'sencillo' : 'titulo').focus();
   });
 
@@ -1325,6 +1402,35 @@
   window.addEventListener('focus', refrescar);
   document.addEventListener('visibilitychange', refrescar);
 
+  // ---------- Caducidad del link ----------
+
+  const linkCaducado = (c) => !!c.caduca && c.caduca <= Date.now();
+  const fechaParaCampo = (ms) => {
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  // El link funciona hasta el final del día elegido (23:59 hora local).
+  async function ponerCaducidad(fechaTexto) {
+    const c = clientePanel();
+    let caduca = null;
+    if (fechaTexto) {
+      const [a, m, d] = fechaTexto.split('-').map(Number);
+      caduca = new Date(a, m - 1, d, 23, 59, 59).getTime();
+    }
+    const hecho = await intentar(() => Almacen.editarCliente(c.id, { caduca }), 'No se pudo cambiar la fecha');
+    if (!hecho) return;
+    pintarPanelCliente();
+    pintarLista();
+    avisar(caduca ? `El link funcionará hasta el ${fecha(caduca)}` : 'El link ya no caduca');
+  }
+
+  $('cliente-caduca').addEventListener('change', () => ponerCaducidad($('cliente-caduca').value));
+  $('quitar-caducidad').addEventListener('click', () => ponerCaducidad(''));
+  document.querySelectorAll('.caducidad-atajos [data-dias]').forEach((b) => b.addEventListener('click', () => {
+    ponerCaducidad(fechaParaCampo(Date.now() + Number(b.dataset.dias) * 24 * 60 * 60 * 1000));
+  }));
+
   // ---------- Móvil ----------
 
   function cerrarLateral() { $('lateral').classList.remove('abierto'); }
@@ -1459,7 +1565,7 @@
   llenarSelectorFormato($('pegar-formato'), true);
   $('nuevo').addEventListener('click', abrirNuevo);
   $('pegar').addEventListener('click', abrirPegar);
-  $('nuevo-cliente').addEventListener('click', nuevoCliente);
+  $('boton-nuevo-cliente').addEventListener('click', nuevoCliente);
   ['nuevo', 'pegar'].forEach((d) => $(`${d}-cliente`).addEventListener('change', () => alternarClienteNuevo(d)));
   document.querySelectorAll('[data-accion]').forEach((b) =>
     b.addEventListener('click', () => (b.dataset.accion === 'nuevo' ? abrirNuevo() : abrirPegar())));

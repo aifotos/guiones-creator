@@ -14,6 +14,10 @@
 //   GET    /api/guiones/:id/cambios     qué cambió el cliente (antes y después)
 //   GET    /api/guiones/:id/versiones   historial: copias anteriores del guion
 //   POST   /api/guiones/:id/desbloquear quita la aprobación para poder editarlo
+//   GET    /api/plantillas              tus plantillas
+//   POST   /api/plantillas              { nombre, formato, bloques } guarda una plantilla
+//   DELETE /api/plantillas/:id
+//   GET    /api/respaldo                copia de seguridad de todo (JSON)
 //   GET    /api/avisos                  estado de los avisos por Telegram
 //   POST   /api/avisos/telegram/conectar  conecta el chat que acaba de escribir al bot
 //   POST   /api/avisos/telegram/prueba    manda un aviso de prueba
@@ -220,9 +224,12 @@ async function editarCliente(peticion, env, id) {
   const activo = d.activo != null ? (d.activo ? 1 : 0) : cliente.activo;
   // Solo cifras (con el código de país), como lo pide WhatsApp: 18095551234
   const telefono = d.telefono != null ? String(d.telefono).replace(/\D/g, '').slice(0, 20) : cliente.telefono;
+  // caduca: fecha en ms a partir de la cual el link deja de funcionar; null = sin fecha.
+  const caduca = d.caduca !== undefined ? (d.caduca ? Number(d.caduca) || null : null) : cliente.caduca;
   const ahora = Date.now();
-  await env.DB.prepare('UPDATE clientes SET nombre = ?, activo = ?, telefono = ?, actualizado = ? WHERE id = ?').bind(nombre, activo, telefono, ahora, id).run();
-  return json({ ...cliente, nombre, activo, telefono, actualizado: ahora });
+  await env.DB.prepare('UPDATE clientes SET nombre = ?, activo = ?, telefono = ?, caduca = ?, actualizado = ? WHERE id = ?')
+    .bind(nombre, activo, telefono, caduca, ahora, id).run();
+  return json({ ...cliente, nombre, activo, telefono, caduca, actualizado: ahora });
 }
 
 async function regenerarLink(env, id) {
@@ -360,6 +367,48 @@ async function guardarComentario(env, guionId, autor, { texto, cita } = {}) {
   return comentario;
 }
 
+// ---------- Plantillas ----------
+
+async function listarPlantillas(env) {
+  const { results } = await env.DB.prepare('SELECT * FROM plantillas ORDER BY nombre COLLATE NOCASE').all();
+  return json({ plantillas: results.map((p) => ({ id: p.id, nombre: p.nombre, formato: p.formato, bloques: JSON.parse(p.contenido || '{}').bloques || [] })) });
+}
+
+async function crearPlantilla(peticion, env) {
+  const d = await leerCuerpo(peticion);
+  const nombre = String(d.nombre ?? '').trim().slice(0, 120);
+  if (!nombre) throw new ErrorHttp(400, 'Ponle un nombre a la plantilla');
+  if (!FORMATOS.includes(d.formato)) throw new ErrorHttp(400, 'Formato desconocido');
+  const plantilla = { id: nuevoId(), nombre, formato: d.formato, bloques: limpiarBloques(d.bloques || []) };
+  await env.DB.prepare('INSERT INTO plantillas (id, nombre, formato, contenido, creado) VALUES (?, ?, ?, ?, ?)')
+    .bind(plantilla.id, nombre, plantilla.formato, JSON.stringify({ bloques: plantilla.bloques }), Date.now()).run();
+  return json(plantilla, 201);
+}
+
+async function borrarPlantilla(env, id) {
+  await env.DB.prepare('DELETE FROM plantillas WHERE id = ?').bind(id).run();
+  return json({ ok: true });
+}
+
+// ---------- Copia de seguridad ----------
+// Todo lo tuyo en un archivo: clientes, guiones, chats, historial y plantillas.
+// No incluye la contraseña ni el token del bot (son secretos de Cloudflare).
+
+async function respaldo(env) {
+  const tablas = ['clientes', 'guiones', 'comentarios', 'versiones', 'plantillas'];
+  const resultados = await env.DB.batch(tablas.map((t) => env.DB.prepare(`SELECT * FROM ${t}`)));
+  const datos = { app: 'Guiones Creator by aifotos', fecha: new Date().toISOString() };
+  tablas.forEach((t, i) => { datos[t] = resultados[i].results; });
+  return new Response(JSON.stringify(datos, null, 1), {
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="guiones-creator-respaldo-${datos.fecha.slice(0, 10)}.json"`,
+      'Cache-Control': 'no-store',
+      ...CORS,
+    },
+  });
+}
+
 // ---------- Avisos por Telegram ----------
 // El bot lo creas tú en Telegram (@BotFather); su token es un secreto de Cloudflare
 // (TELEGRAM_TOKEN) y el chat al que escribir se guarda en la tabla ajustes.
@@ -442,8 +491,9 @@ async function desconectarTelegram(env) {
 // ---------- Cliente (con su link) ----------
 
 async function clienteDelLink(env, token) {
-  const cliente = await env.DB.prepare('SELECT id, nombre, telefono FROM clientes WHERE token = ? AND activo = 1').bind(token).first();
+  const cliente = await env.DB.prepare('SELECT id, nombre, telefono, caduca FROM clientes WHERE token = ? AND activo = 1').bind(token).first();
   if (!cliente) throw new ErrorHttp(404, 'Este link no existe o fue desactivado');
+  if (cliente.caduca && cliente.caduca <= Date.now()) throw new ErrorHttp(410, 'Este link caducó. Pide uno nuevo a aifotos.');
   return cliente;
 }
 
@@ -565,6 +615,10 @@ async function atender(peticion, env, ctx) {
     await exigirAdmin(peticion, env);
     if (ruta === '/api/todo' && metodo === 'GET') return todo(env);
     if (ruta === '/api/avisos' && metodo === 'GET') return estadoAvisos(env);
+    if (ruta === '/api/plantillas' && metodo === 'GET') return listarPlantillas(env);
+    if (ruta === '/api/plantillas' && metodo === 'POST') return crearPlantilla(peticion, env);
+    if ((m = ruta.match(/^\/api\/plantillas\/([\w-]+)$/)) && metodo === 'DELETE') return borrarPlantilla(env, m[1]);
+    if (ruta === '/api/respaldo' && metodo === 'GET') return respaldo(env);
     if (ruta === '/api/avisos/telegram/conectar' && metodo === 'POST') return conectarTelegram(env);
     if (ruta === '/api/avisos/telegram/prueba' && metodo === 'POST') return pruebaTelegram(env);
     if (ruta === '/api/avisos/telegram' && metodo === 'DELETE') return desconectarTelegram(env);

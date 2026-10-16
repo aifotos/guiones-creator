@@ -110,6 +110,8 @@
     $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar guión';
     $('editar').classList.toggle('activa', editando);
     $('descartar').hidden = !editando;
+    $('cliente-pdf').hidden = editando;
+    $('cliente-teleprompter').hidden = editando;
     $('aprobar').hidden = !!actual.aprobado || editando;
     $('ayuda-edicion').hidden = !editando;
     $('pista-seleccion').hidden = editando;
@@ -262,6 +264,11 @@
     terminarEdicion();
     estadoEdicion('');
   });
+
+  // ---------- PDF y teleprompter ----------
+
+  $('cliente-pdf').addEventListener('click', () => Exportar.pdf(actual, { cliente: nombreCliente }));
+  $('cliente-teleprompter').addEventListener('click', () => Teleprompter.abrir(actual));
 
   // ---------- Aprobar ----------
 
@@ -561,8 +568,8 @@
       await enrutar();
       pedirWhatsApp();
     } catch (e) {
-      $('estado').textContent = e.estado === 404
-        ? 'Este link no existe o fue desactivado. Pide uno nuevo a aifotos.'
+      $('estado').textContent = e.estado === 404 || e.estado === 410
+        ? (e.estado === 410 ? e.message : 'Este link no existe o fue desactivado. Pide uno nuevo a aifotos.')
         : e.estado === 0
           ? 'Sin conexión a internet. Revisa tu conexión y recarga la página.'
           : 'No se pudieron cargar tus guiones. Inténtalo de nuevo en un momento.';

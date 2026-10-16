@@ -117,11 +117,11 @@ siguiente hasta que tú la apruebes.
 **Resultado:** la app funciona 24/7 sin depender de tu MacBook.
 
 ### Fase 6 — Extras (cuando lo básico esté sólido)
-- [ ] Exportar guión a **PDF** con tu marca.
-- [ ] Modo **teleprompter** (texto grande que avanza solo) para grabar.
-- [ ] Plantillas de guión (reel, anuncio, testimonio…).
-- [ ] Copia de seguridad descargable de todos los guiones.
-- [ ] Caducidad de links (que dejen de funcionar tras X días).
+- [x] Exportar guión a **PDF** con tu marca.
+- [x] Modo **teleprompter** (texto grande que avanza solo) para grabar.
+- [x] Plantillas de guión (reel, anuncio, testimonio, tutorial, corto…) y guardar las tuyas.
+- [x] Copia de seguridad descargable de todos los guiones.
+- [x] Caducidad de links (que dejen de funcionar tras X días).
 
 ---
 

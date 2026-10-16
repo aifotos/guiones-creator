@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guiones Creator · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161309">
-  <link rel="stylesheet" href="css/app.css?v=202610161309">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161319">
+  <link rel="stylesheet" href="css/impresion.css?v=202610161319">
+  <link rel="stylesheet" href="css/app.css?v=202610161319">
 </head>
 <body>
   <header class="barra">
     <button class="boton-icono solo-movil" id="abrir-lista" aria-label="Ver guiones">☰</button>
     <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
     <span class="barra-nombre">Guiones Creator</span>
-    <button class="boton-texto barra-avisos" id="abrir-avisos" hidden title="Avisos de Telegram">🔔 Avisos</button>
+    <button class="boton-texto barra-avisos" id="abrir-avisos" hidden title="Avisos de Telegram y copia de seguridad">⚙️ Ajustes</button>
     <button class="boton-texto barra-salir" id="salir" hidden>Cerrar sesión</button>
   </header>
 
@@ -40,7 +41,7 @@
       </div>
       <div class="lateral-cabecera">
         <h2 class="lateral-titulo">Clientes</h2>
-        <button class="boton-texto" id="nuevo-cliente">+ Cliente</button>
+        <button class="boton-texto" id="boton-nuevo-cliente">+ Cliente</button>
       </div>
       <ul class="lista" id="lista"></ul>
     </aside>
@@ -70,6 +71,17 @@
             <input class="link-url" id="link-url" readonly aria-label="Link del cliente">
             <button class="boton boton-principal" id="link-copiar">Copiar link</button>
             <button class="boton boton-whatsapp" id="link-whatsapp">WhatsApp</button>
+          </div>
+          <div class="caducidad">
+            <label class="campo campo-caduca">
+              <span>El link deja de funcionar el <small>(opcional)</small></span>
+              <input id="cliente-caduca" type="date">
+            </label>
+            <div class="caducidad-atajos">
+              <button class="boton-texto" type="button" data-dias="7">En 7 días</button>
+              <button class="boton-texto" type="button" data-dias="30">En 30 días</button>
+              <button class="boton-texto" type="button" id="quitar-caducidad">Sin fecha</button>
+            </div>
           </div>
           <label class="campo campo-telefono">
             <span>WhatsApp del cliente <small>(opcional: así el botón de WhatsApp abre directamente su chat)</small></span>
@@ -118,6 +130,18 @@
               <span>Formato</span>
               <select id="formato"></select>
             </label>
+            <button class="boton boton-herramienta" id="abrir-teleprompter" title="Leer el guion en modo teleprompter">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 5h18v12H3zM8 21h8M12 17v4M7 9h10M7 13h6"/></svg>
+              <span>Teleprompter</span>
+            </button>
+            <button class="boton boton-herramienta" id="exportar-pdf" title="Descargar el guion en PDF con tu marca">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+              <span>PDF</span>
+            </button>
+            <button class="boton boton-herramienta" id="guardar-plantilla" title="Guardar este guion como plantilla para otros nuevos">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 3h11l3 3v15H5zM8 3v6h8V3M8 21v-7h8v7"/></svg>
+              <span>Plantilla</span>
+            </button>
             <button class="boton boton-historial" id="abrir-historial" title="Ver y recuperar versiones anteriores">
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg>
               <span>Historial</span>
@@ -220,7 +244,8 @@
 
   <dialog class="dialogo dialogo-avisos" id="dialogo-avisos">
     <form method="dialog" class="dialogo-contenido">
-      <h2>🔔 Avisos en tu celular</h2>
+      <h2>⚙️ Ajustes</h2>
+      <h3 class="ajustes-seccion">🔔 Avisos en tu celular</h3>
       <p class="dialogo-ayuda">Te llega un mensaje de Telegram cuando un cliente te escribe, cambia o aprueba un guion, aunque no tengas la app abierta.</p>
       <p class="avisos-estado" id="avisos-estado">Comprobando…</p>
       <ol class="avisos-pasos" id="avisos-pasos" hidden>
@@ -234,7 +259,12 @@
         <button class="boton-texto peligro" type="button" id="avisos-desconectar" hidden>Desconectar</button>
         <button class="boton" type="button" id="avisos-prueba" hidden>Enviar prueba</button>
         <button class="boton boton-principal" type="button" id="avisos-conectar" hidden>Conectar Telegram</button>
-        <button class="boton" value="cerrar">Cerrar</button>
+      </div>
+      <h3 class="ajustes-seccion">💾 Copia de seguridad</h3>
+      <p class="dialogo-ayuda">Descarga un archivo con todos tus clientes, guiones, chats, historial y plantillas. Guárdalo en tu Mac o en la nube de vez en cuando. No incluye tu contraseña.</p>
+      <div class="dialogo-acciones">
+        <button class="boton" type="button" id="descargar-respaldo">Descargar copia de seguridad</button>
+        <button class="boton boton-principal" value="cerrar">Cerrar</button>
       </div>
     </form>
   </dialog>
@@ -260,6 +290,11 @@
         <span>¿Qué tipo de guión?</span>
         <div class="formatos" id="nuevo-formatos"></div>
       </div>
+      <label class="campo">
+        <span>Empezar con</span>
+        <select id="nuevo-plantilla"></select>
+      </label>
+      <button class="boton-texto peligro borrar-plantilla" type="button" id="borrar-plantilla" hidden>Eliminar esta plantilla</button>
       <div class="dialogo-acciones">
         <button class="boton" value="cancelar" formnovalidate>Cancelar</button>
         <button class="boton boton-principal" value="crear">Crear guión</button>
@@ -301,13 +336,16 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161309"></script>
-  <script src="js/guion.js?v=202610161309"></script>
-  <script src="js/almacen.js?v=202610161309"></script>
-  <script src="js/sugerencias.js?v=202610161309"></script>
-  <script src="js/diferencias.js?v=202610161309"></script>
-  <script src="js/chat.js?v=202610161309"></script>
-  <script src="js/vista.js?v=202610161309"></script>
-  <script src="js/app.js?v=202610161309"></script>
+  <script src="js/config.js?v=202610161319"></script>
+  <script src="js/guion.js?v=202610161319"></script>
+  <script src="js/almacen.js?v=202610161319"></script>
+  <script src="js/sugerencias.js?v=202610161319"></script>
+  <script src="js/diferencias.js?v=202610161319"></script>
+  <script src="js/chat.js?v=202610161319"></script>
+  <script src="js/vista.js?v=202610161319"></script>
+  <script src="js/exportar.js?v=202610161319"></script>
+  <script src="js/teleprompter.js?v=202610161319"></script>
+  <script src="js/plantillas.js?v=202610161319"></script>
+  <script src="js/app.js?v=202610161319"></script>
 </body>
 </html>

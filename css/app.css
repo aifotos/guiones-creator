@@ -1318,3 +1318,118 @@ body.chat-minimizado .chat-abrir { display: grid; }
 
 #modo-editar.bloqueado { opacity: .6; filter: grayscale(.3); user-select: none; }
 .aviso-doc.aprobado .boton-texto { color: #2F5A52; }
+
+/* ---------- Teleprompter ---------- */
+
+.teleprompter {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.tp-rollo {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  cursor: pointer;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.tp-rollo::-webkit-scrollbar { display: none; }
+.teleprompter.espejo .tp-rollo { transform: scaleX(-1); }
+.tp-interior { max-width: 1100px; margin: 0 auto; padding: 38vh 6vw 70vh; }
+.tp-titulo { font-size: .5em; color: var(--aifotos-ambar); margin: 0 0 1em; }
+.tp-escena {
+  font-size: .38em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--aifotos-ambar);
+  margin: 1.6em 0 .5em;
+  padding-top: .6em;
+  border-top: 1px solid rgba(255, 255, 255, .2);
+}
+.tp-quien { font-size: .4em; color: #9FC4BD; margin: .8em 0 .1em; font-weight: 700; }
+.tp-texto { margin: 0 0 .8em; white-space: pre-wrap; }
+.tp-fin { font-size: .4em; color: #777; text-align: center; margin-top: 2em; }
+/* Línea guía: a la altura de los ojos, donde conviene ir leyendo */
+.tp-guia {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 38vh;
+  height: 0;
+  border-top: 2px solid rgba(249, 174, 52, .55);
+  pointer-events: none;
+}
+.tp-guia::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: -9px;
+  border: 8px solid transparent;
+  border-left: 12px solid var(--aifotos-ambar);
+}
+.tp-cuenta {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 800 30vh var(--fuente);
+  color: var(--aifotos-ambar);
+  background: rgba(0, 0, 0, .55);
+  pointer-events: none;
+}
+.tp-cuenta[hidden] { display: none; }
+.tp-controles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: #111;
+  border-top: 1px solid #222;
+  transition: opacity .3s;
+}
+.teleprompter.corriendo .tp-controles { opacity: .15; }
+.teleprompter.corriendo .tp-controles:hover { opacity: 1; }
+.tp-boton {
+  min-width: 46px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid #333;
+  border-radius: 10px;
+  background: #1D1D1D;
+  color: #fff;
+  font: 600 16px var(--fuente);
+  cursor: pointer;
+}
+.tp-boton:hover { background: #2A2A2A; }
+.tp-play { background: var(--aifotos-ambar); border-color: var(--aifotos-ambar); color: #000; min-width: 130px; }
+.tp-play:hover { background: #F3A21C; }
+.tp-salir { margin-left: 12px; }
+.tp-estado { color: #999; font-size: 14px; margin: 0 8px; }
+@media (max-width: 760px) {
+  .tp-interior { padding: 30vh 6vw 70vh; }
+  .tp-guia { top: 30vh; }
+  .tp-estado { display: none; }
+}
+
+/* ---------- Herramientas del guion, ajustes y caducidad ---------- */
+
+.boton-herramienta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-color: transparent; }
+@media (max-width: 1400px) {
+  .boton-herramienta span, .boton-historial span { display: none; }
+}
+.ajustes-seccion { margin: 6px 0 0; font-size: 16px; }
+.ajustes-seccion + .dialogo-ayuda { margin-top: -6px; }
+.borrar-plantilla { justify-self: start; font-size: 13px; }
+.caducidad { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.campo-caduca { font-weight: 600; }
+.campo-caduca small { font-weight: 400; color: var(--tinta-suave); }
+.campo-caduca input { max-width: 200px; }
+.caducidad-atajos { display: flex; gap: 4px; padding-bottom: 6px; }

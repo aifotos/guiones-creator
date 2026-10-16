@@ -206,3 +206,6 @@
 .dialogo-whatsapp .dialogo-acciones { justify-content: center; }
 .boton-guardar-whatsapp { background: #25D366; border-color: #25D366; color: #fff; }
 .boton-guardar-whatsapp:hover { background: #1FBE5B; border-color: #1FBE5B; }
+
+.accion-icono { padding: 0; width: 46px; }
+.accion-icono[hidden] { display: none; }

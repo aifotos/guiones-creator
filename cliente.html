@@ -7,9 +7,10 @@
   <meta name="referrer" content="no-referrer">
   <title>Tus guiones · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161309">
-  <link rel="stylesheet" href="css/app.css?v=202610161309">
-  <link rel="stylesheet" href="css/cliente.css?v=202610161309">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161319">
+  <link rel="stylesheet" href="css/impresion.css?v=202610161319">
+  <link rel="stylesheet" href="css/app.css?v=202610161319">
+  <link rel="stylesheet" href="css/cliente.css?v=202610161319">
 </head>
 <body class="pagina-cliente">
   <header class="barra">
@@ -40,6 +41,12 @@
               <button class="accion" id="descartar" hidden>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
                 <span>Descartar</span>
+              </button>
+              <button class="accion accion-icono" id="cliente-teleprompter" title="Leer en modo teleprompter" aria-label="Teleprompter">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v12H3zM8 21h8M12 17v4M7 9h10M7 13h6"/></svg>
+              </button>
+              <button class="accion accion-icono" id="cliente-pdf" title="Descargar en PDF" aria-label="Descargar en PDF">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
               </button>
               <button class="accion accion-principal" id="aprobar">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
@@ -162,11 +169,13 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161309"></script>
-  <script src="js/guion.js?v=202610161309"></script>
-  <script src="js/diferencias.js?v=202610161309"></script>
-  <script src="js/chat.js?v=202610161309"></script>
-  <script src="js/vista.js?v=202610161309"></script>
-  <script src="js/cliente.js?v=202610161309"></script>
+  <script src="js/config.js?v=202610161319"></script>
+  <script src="js/guion.js?v=202610161319"></script>
+  <script src="js/diferencias.js?v=202610161319"></script>
+  <script src="js/chat.js?v=202610161319"></script>
+  <script src="js/vista.js?v=202610161319"></script>
+  <script src="js/exportar.js?v=202610161319"></script>
+  <script src="js/teleprompter.js?v=202610161319"></script>
+  <script src="js/cliente.js?v=202610161319"></script>
 </body>
 </html>
