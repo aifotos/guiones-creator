@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161628">
-  <link rel="stylesheet" href="css/impresion.css?v=202610161628">
-  <link rel="stylesheet" href="css/app.css?v=202610161628">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161651">
+  <link rel="stylesheet" href="css/impresion.css?v=202610161651">
+  <link rel="stylesheet" href="css/app.css?v=202610161651">
 </head>
 <body>
   <div class="acceso" id="acceso" hidden>
@@ -94,62 +94,72 @@
 
       <div class="vacio" id="vacio" hidden>
         <img src="assets/logo-aifotos.png" alt="" class="vacio-logo">
-        <h1>Tu primer guión</h1>
-        <p>Escribe uno desde cero o pega uno que ya tengas. Cada guión va dentro de un cliente, y cada cliente tiene su propio link para ver sus guiones.</p>
-        <div class="vacio-acciones">
-          <button class="boton boton-principal" data-accion="nuevo">Escribir un guión</button>
-          <button class="boton" data-accion="pegar">Pegar un guión</button>
+        <h1 class="inicio-titulo">Tu primer <span class="inicio-marca">guión.</span></h1>
+        <p class="inicio-resumen">Escribe uno desde cero o pega uno que ya tengas. Cada guión va dentro de un cliente, y cada cliente tiene su propio link para ver sus guiones.</p>
+        <div class="inicio-botones">
+          <button class="inicio-pegar" data-accion="pegar">Pegar guión</button>
+          <button class="inicio-nuevo" data-accion="nuevo">+ Nuevo guión</button>
         </div>
       </div>
 
       <section class="panel-cliente" id="panel-cliente" hidden>
-        <p class="panel-etiqueta">Cliente</p>
-        <input class="titulo" id="cliente-nombre" aria-label="Nombre del cliente" autocomplete="off">
+        <div class="panel-contenido">
+          <div class="panel-cabecera">
+            <span class="avatar avatar-panel" id="panel-avatar"></span>
+            <div class="panel-nombre">
+              <span class="inicio-fecha">Cliente</span>
+              <input class="panel-titulo" id="cliente-nombre" aria-label="Nombre del cliente" autocomplete="off">
+            </div>
+          </div>
 
-        <div class="link-caja" id="link-caja">
-          <div class="link-cabecera">
-            <h2>Link para el cliente</h2>
-            <span class="estado-link" id="estado-link"></span>
-          </div>
-          <p class="link-ayuda" id="link-ayuda"></p>
-          <div class="link-fila">
-            <input class="link-url" id="link-url" readonly aria-label="Link del cliente">
-            <button class="boton boton-principal" id="link-copiar">Copiar link</button>
-            <button class="boton boton-whatsapp" id="link-whatsapp">WhatsApp</button>
-          </div>
-          <div class="caducidad">
-            <label class="campo campo-caduca">
-              <span>El link deja de funcionar el <small>(opcional)</small></span>
-              <input id="cliente-caduca" type="date">
+          <div class="panel-tarjeta" id="link-caja">
+            <div class="ajustes-tarjeta-cabecera">
+              <h3>Link para el cliente</h3>
+              <span class="estado-link" id="estado-link"></span>
+            </div>
+            <p class="panel-ayuda" id="link-ayuda"></p>
+            <div class="cliente-tarjeta-link">
+              <svg class="ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <input class="link-url" id="link-url" readonly aria-label="Link del cliente">
+              <button class="link-copiar-mini" id="link-copiar">Copiar</button>
+              <button class="link-whatsapp-mini" id="link-whatsapp">WhatsApp</button>
+            </div>
+            <div class="caducidad">
+              <label class="campo campo-caduca">
+                <span>El link deja de funcionar el (opcional)</span>
+                <input id="cliente-caduca" type="date">
+              </label>
+              <div class="caducidad-atajos">
+                <button class="plantilla-chip" type="button" data-dias="7">En 7 días</button>
+                <button class="plantilla-chip" type="button" data-dias="30">En 30 días</button>
+                <button class="plantilla-chip" type="button" id="quitar-caducidad">Sin fecha</button>
+              </div>
+            </div>
+            <label class="campo campo-telefono">
+              <span>WhatsApp del cliente (opcional: así el botón de WhatsApp abre directamente su chat)</span>
+              <input id="cliente-telefono" type="tel" inputmode="tel" placeholder="Con código de país, ej.: 1 809 555 1234" autocomplete="off">
             </label>
-            <div class="caducidad-atajos">
-              <button class="boton-texto" type="button" data-dias="7">En 7 días</button>
-              <button class="boton-texto" type="button" data-dias="30">En 30 días</button>
-              <button class="boton-texto" type="button" id="quitar-caducidad">Sin fecha</button>
+            <div class="panel-pie">
+              <button class="cliente-tarjeta-mas" id="link-activar"></button>
+              <button class="cliente-tarjeta-mas" id="link-regenerar">Generar un link nuevo</button>
             </div>
           </div>
-          <label class="campo campo-telefono">
-            <span>WhatsApp del cliente <small>(opcional: así el botón de WhatsApp abre directamente su chat)</small></span>
-            <input id="cliente-telefono" type="tel" inputmode="tel" placeholder="Con código de país, ej.: 1 809 555 1234" autocomplete="off">
-          </label>
-          <div class="link-acciones">
-            <button class="boton-texto" id="link-activar"></button>
-            <button class="boton-texto" id="link-regenerar">Generar un link nuevo</button>
-          </div>
-        </div>
 
-        <div class="panel-guiones">
-          <div class="panel-guiones-cabecera">
-            <h2>Guiones</h2>
-            <div class="vacio-acciones">
-              <button class="boton boton-principal" data-accion="nuevo">+ Nuevo guión</button>
-              <button class="boton" data-accion="pegar">Pegar guión</button>
+          <section class="inicio-seccion">
+            <div class="inicio-seccion-cabecera entre">
+              <h2>Guiones</h2>
+              <div class="inicio-botones">
+                <button class="inicio-pegar" data-accion="pegar">Pegar guión</button>
+                <button class="inicio-nuevo" data-accion="nuevo">+ Nuevo guión</button>
+              </div>
             </div>
-          </div>
-          <ul class="tarjetas" id="cliente-guiones"></ul>
-        </div>
+            <div class="panel-tarjeta panel-guiones">
+              <div class="cliente-tarjeta-guiones" id="cliente-guiones"></div>
+            </div>
+          </section>
 
-        <button class="boton-texto peligro" id="borrar-cliente">Eliminar cliente y todos sus guiones</button>
+          <button class="ajustes-peligro panel-borrar" id="borrar-cliente">Eliminar cliente y todos sus guiones</button>
+        </div>
       </section>
 
       <div class="documento" id="documento" hidden>
@@ -421,17 +431,17 @@
     </form>
   </dialog>
 
-  <script src="js/ui.js?v=202610161628"></script>
-  <script src="js/config.js?v=202610161628"></script>
-  <script src="js/guion.js?v=202610161628"></script>
-  <script src="js/almacen.js?v=202610161628"></script>
-  <script src="js/sugerencias.js?v=202610161628"></script>
-  <script src="js/diferencias.js?v=202610161628"></script>
-  <script src="js/chat.js?v=202610161628"></script>
-  <script src="js/vista.js?v=202610161628"></script>
-  <script src="js/exportar.js?v=202610161628"></script>
-  <script src="js/teleprompter.js?v=202610161628"></script>
-  <script src="js/plantillas.js?v=202610161628"></script>
-  <script src="js/app.js?v=202610161628"></script>
+  <script src="js/ui.js?v=202610161651"></script>
+  <script src="js/config.js?v=202610161651"></script>
+  <script src="js/guion.js?v=202610161651"></script>
+  <script src="js/almacen.js?v=202610161651"></script>
+  <script src="js/sugerencias.js?v=202610161651"></script>
+  <script src="js/diferencias.js?v=202610161651"></script>
+  <script src="js/chat.js?v=202610161651"></script>
+  <script src="js/vista.js?v=202610161651"></script>
+  <script src="js/exportar.js?v=202610161651"></script>
+  <script src="js/teleprompter.js?v=202610161651"></script>
+  <script src="js/plantillas.js?v=202610161651"></script>
+  <script src="js/app.js?v=202610161651"></script>
 </body>
 </html>

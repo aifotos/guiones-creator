@@ -460,6 +460,25 @@
     return g.actualizado;
   }
 
+  // Fila de un guion: punto y píldora de estado, título, formato y cuándo se tocó.
+  function filaGuion(g) {
+    const e = estadoDe(g);
+    const fila = elemento('button', 'cliente-tarjeta-guion');
+    const punto = elemento('span', 'punto-estado');
+    punto.style.background = e.punto;
+    const textos = elemento('span', 'cliente-tarjeta-textos');
+    textos.append(
+      elemento('span', 'cliente-tarjeta-titulo', g.titulo || 'Guión sin título'),
+      elemento('span', 'cliente-tarjeta-info', `${Guion.FORMATOS[g.formato || 'video'].nombre} · ${haceCuanto(g.actualizado)}`),
+    );
+    const pildora = elemento('span', 'cliente-tarjeta-estado', e.etiqueta);
+    pildora.style.background = e.fondo;
+    pildora.style.color = e.texto;
+    fila.append(punto, textos, pildora);
+    fila.addEventListener('click', () => abrir(g.id));
+    return fila;
+  }
+
   function pintarInicio() {
     const ahora = new Date();
     const dia = ahora.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
@@ -523,23 +542,7 @@
       cabeza.addEventListener('click', () => abrirCliente(c.id));
 
       const lista = elemento('div', 'cliente-tarjeta-guiones');
-      for (const g of guiones) {
-        const e = estadoDe(g);
-        const fila = elemento('button', 'cliente-tarjeta-guion');
-        const punto = elemento('span', 'punto-estado');
-        punto.style.background = e.punto;
-        const textos = elemento('span', 'cliente-tarjeta-textos');
-        textos.append(
-          elemento('span', 'cliente-tarjeta-titulo', g.titulo || 'Guión sin título'),
-          elemento('span', 'cliente-tarjeta-info', `${Guion.FORMATOS[g.formato || 'video'].nombre} · ${haceCuanto(g.actualizado)}`),
-        );
-        const pildora = elemento('span', 'cliente-tarjeta-estado', e.etiqueta);
-        pildora.style.background = e.fondo;
-        pildora.style.color = e.texto;
-        fila.append(punto, textos, pildora);
-        fila.addEventListener('click', () => abrir(g.id));
-        lista.append(fila);
-      }
+      for (const g of guiones) lista.append(filaGuion(g));
 
       const link = elemento('div', 'cliente-tarjeta-link');
       const url = Almacen.linkDe(c);
@@ -630,12 +633,13 @@
     const c = Almacen.obtenerCliente(clienteAbierto);
     if (!c) return abrir(null);
     $('cliente-nombre').value = c.nombre;
+    $('panel-avatar').replaceWith(Object.assign(UI.avatar(c.nombre, indiceCliente(c.id), 'avatar avatar-panel'), { id: 'panel-avatar' }));
     $('link-url').value = Almacen.linkDe(c);
     const caducado = linkCaducado(c);
     const funciona = c.activo && !caducado;
     $('link-caja').classList.toggle('apagado', !funciona);
     $('estado-link').textContent = !c.activo ? 'Desactivado' : caducado ? 'Caducado' : 'Activo';
-    $('estado-link').className = `estado-link ${funciona ? 'activo' : 'inactivo'}`;
+    $('estado-link').className = `ajustes-estado estado-link ${funciona ? 'activo' : 'inactivo'}`;
     $('link-ayuda').textContent = !c.activo
       ? 'Este link está desactivado: quien lo abra no verá nada. Actívalo otra vez o genera uno nuevo.'
       : caducado
@@ -648,19 +652,8 @@
     $('link-activar').textContent = c.activo ? 'Desactivar link' : 'Activar link';
 
     const ul = $('cliente-guiones');
-    ul.replaceChildren();
-    for (const g of Almacen.guionesDe(c.id)) {
-      const li = elemento('li');
-      const tarjeta = elemento('button', 'tarjeta');
-      const titulo = elemento('span', 'tarjeta-titulo', g.titulo || 'Guión sin título');
-      titulo.append(insignias(g));
-      const quehizo = novedades(g);
-      tarjeta.append(titulo, elemento('span', 'lista-info', infoGuion(g) + (quehizo.length ? ` · el cliente ${quehizo.join(', ')}` : '')));
-      tarjeta.addEventListener('click', () => abrir(g.id));
-      li.append(tarjeta);
-      ul.append(li);
-    }
-    if (!ul.children.length) ul.append(elemento('li', 'lista-vacia', 'Este cliente aún no tiene guiones.'));
+    ul.replaceChildren(...Almacen.guionesDe(c.id).map(filaGuion));
+    if (!ul.children.length) ul.append(elemento('p', 'feed-vacio', 'Este cliente aún no tiene guiones.'));
   }
 
   // Ejecuta una acción contra la nube y avisa si falla.
@@ -1652,7 +1645,8 @@
     const c = Almacen.obtenerCliente(clienteAbierto);
     const n = Almacen.guionesDe(c.id).length;
     const aviso = n ? ` y sus ${n} guion${n === 1 ? '' : 'es'}` : '';
-    if (!confirm(`¿Eliminar a "${c.nombre}"${aviso}? Su link dejará de funcionar. No se puede deshacer.`)) return;
+    if (!(await confirmarBorrado(`¿Eliminar a «${c.nombre}»?`,
+      `Se borran ${c.nombre}${aviso}, con sus chats e historial. Su link dejará de funcionar. Esto no se puede deshacer.`))) return;
     if ((await intentar(() => Almacen.borrarCliente(c.id), 'No se pudo eliminar el cliente')) === null) return;
     const siguiente = Almacen.listarClientes()[0];
     if (siguiente) abrirCliente(siguiente.id); else abrir(null);

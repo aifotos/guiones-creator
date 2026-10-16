@@ -1,10 +1,12 @@
-// Modo teleprompter: el texto que se dice, grande, pasando solo para leerlo
-// mirando a cámara. Teclas: espacio (pausa), ↑/↓ (velocidad), +/− (tamaño),
-// M (espejo, para los teleprompter con cristal), R (desde el principio), Esc (salir).
+// Modo teleprompter (rediseño v2): lo que se dice, grande sobre fondo oscuro, pasando
+// solo para leerlo mirando a cámara, con una franja a la altura de los ojos.
+// Teclas: espacio (pausa), ↑/↓ (velocidad), +/− (tamaño), M (espejo, para los
+// teleprompter con cristal), R (desde el principio), Esc (salir).
 const Teleprompter = (() => {
   const CLAVE = 'guiones-creator:teleprompter';
-  let ajustes = { velocidad: 5, tamano: 56, espejo: false };
-  try { ajustes = { ...ajustes, ...JSON.parse(localStorage.getItem(CLAVE) || '{}') }; } catch {}
+  // tamano: null = el del diseño (46 px; 30 en el celular), hasta que lo cambies con +/−.
+  let ajustes = { velocidad: 4, tamano: null, espejo: false };
+  try { ajustes = { ...ajustes, ...JSON.parse(localStorage.getItem('guiones-creator:teleprompter-v2') || '{}') }; } catch {}
 
   let caja = null, texto = null, marcador = null, estado = null;
   let corriendo = false, ultimo = 0, animacion = null, cuentaAtras = null, posicion = 0;
@@ -17,30 +19,33 @@ const Teleprompter = (() => {
   }
 
   function guardarAjustes() {
-    try { localStorage.setItem(CLAVE, JSON.stringify(ajustes)); } catch {}
+    try { localStorage.setItem(`${CLAVE}-v2`, JSON.stringify(ajustes)); } catch {}
   }
 
-  // Solo lo que se dice en voz alta; las escenas quedan como separadores pequeños.
+  // Solo lo que se dice en voz alta: quién lo dice y el texto.
+  function linea(quien, dicho) {
+    const caja = el('div', 'tp-linea');
+    if (quien) caja.append(el('span', 'tp-quien', quien));
+    caja.append(el('span', 'tp-texto', dicho));
+    return caja;
+  }
+
   function contenido(guion) {
     const piezas = [];
     for (const b of guion.bloques) {
       if (!b.texto.trim()) continue;
-      if (b.tipo === 'escena') piezas.push(el('div', 'tp-escena', b.texto));
-      else if (b.tipo === 'parrafo') for (const p of b.texto.split(/\n\s*\n/)) piezas.push(el('p', 'tp-texto', p.trim()));
-      else if (b.tipo === 'camara' || b.tipo === 'voz') {
-        const quien = b.tipo === 'voz' ? `${b.personaje || 'Voz en off'}` : b.personaje;
-        if (quien) piezas.push(el('div', 'tp-quien', quien));
-        piezas.push(el('p', 'tp-texto', b.texto));
-      }
+      if (b.tipo === 'parrafo') for (const p of b.texto.split(/\n\s*\n/)) piezas.push(linea('', p.trim()));
+      else if (b.tipo === 'camara' || b.tipo === 'voz') piezas.push(linea(b.personaje || 'Voz', b.texto));
     }
-    if (!piezas.length) piezas.push(el('p', 'tp-texto', 'Este guión todavía no tiene texto para decir.'));
+    if (!piezas.length) piezas.push(linea('', 'Este guión todavía no tiene texto para decir.'));
     return piezas;
   }
 
   function aplicarAjustes() {
-    texto.style.fontSize = `${ajustes.tamano}px`;
+    texto.style.setProperty('--tp-tamano', ajustes.tamano ? `${ajustes.tamano}px` : '');
     caja.classList.toggle('espejo', ajustes.espejo);
-    estado.textContent = `Velocidad ${ajustes.velocidad} · Tamaño ${ajustes.tamano}`;
+    estado.textContent = ajustes.velocidad;
+    caja.querySelector('.tp-velocidad').value = ajustes.velocidad;
   }
 
   function paso(ahora) {
@@ -86,12 +91,17 @@ const Teleprompter = (() => {
   const alternar = () => (corriendo || cuentaAtras ? pausar() : arrancar());
 
   function pintarBotonPlay() {
-    caja.querySelector('.tp-play').textContent = corriendo || cuentaAtras ? '⏸ Pausa' : '▶ Empezar';
+    const boton = caja.querySelector('.tp-play');
+    boton.textContent = corriendo || cuentaAtras ? '❚❚' : '▶';
+    boton.setAttribute('aria-label', corriendo || cuentaAtras ? 'Pausar' : 'Reproducir');
   }
 
   function cambiar(que, delta) {
-    if (que === 'velocidad') ajustes.velocidad = Math.min(20, Math.max(1, ajustes.velocidad + delta));
-    if (que === 'tamano') ajustes.tamano = Math.min(120, Math.max(28, ajustes.tamano + delta));
+    if (que === 'velocidad') ajustes.velocidad = Math.min(10, Math.max(1, ajustes.velocidad + delta));
+    if (que === 'tamano') {
+      const actual = ajustes.tamano || parseFloat(getComputedStyle(texto.querySelector('.tp-texto')).fontSize);
+      ajustes.tamano = Math.min(120, Math.max(20, actual + delta));
+    }
     guardarAjustes();
     aplicarAjustes();
   }
@@ -129,42 +139,37 @@ const Teleprompter = (() => {
     accion();
   }
 
-  function boton(contenidoBoton, titulo, accion, clase = '') {
-    const b = el('button', `tp-boton ${clase}`, contenidoBoton);
-    b.type = 'button';
-    b.title = titulo;
-    b.setAttribute('aria-label', titulo);
-    b.addEventListener('click', (e) => { e.stopPropagation(); accion(); });
-    return b;
-  }
-
   function abrir(guion) {
     if (caja) cerrar();
     caja = el('div', 'teleprompter');
     caja.setAttribute('role', 'dialog');
     caja.setAttribute('aria-label', 'Teleprompter');
     texto = el('div', 'tp-rollo');
-    const interior = el('div', 'tp-interior');
-    interior.append(el('h1', 'tp-titulo', guion.titulo || 'Guión'), ...contenido(guion), el('div', 'tp-fin', '— Fin —'));
-    texto.append(interior);
+    texto.append(...contenido(guion));
     marcador = el('div', 'tp-cuenta');
     marcador.hidden = true;
-    estado = el('span', 'tp-estado');
 
+    const salir = el('button', 'tp-salir');
+    salir.setAttribute('aria-label', 'Salir del teleprompter');
+    salir.append(UI.icono('x', 16));
+    salir.addEventListener('click', cerrar);
+
+    // Barra de abajo: reproducir, reiniciar y velocidad
+    const play = el('button', 'tp-play', '▶');
+    play.setAttribute('aria-label', 'Reproducir');
+    play.addEventListener('click', (e) => { e.stopPropagation(); alternar(); });
+    const desde = el('button', 'tp-reiniciar', 'Reiniciar');
+    desde.addEventListener('click', reiniciar);
+    const velocidad = el('label', 'tp-control', 'Velocidad');
+    const rango = el('input', 'tp-velocidad');
+    Object.assign(rango, { type: 'range', min: 1, max: 10 });
+    rango.addEventListener('input', () => { ajustes.velocidad = Number(rango.value); guardarAjustes(); aplicarAjustes(); });
+    estado = el('span', 'tp-numero');
+    velocidad.append(rango, estado);
     const controles = el('div', 'tp-controles');
-    controles.append(
-      boton('⏮', 'Desde el principio (R)', reiniciar),
-      boton('▶ Empezar', 'Empezar o pausar (espacio)', alternar, 'tp-play'),
-      boton('🐢', 'Más lento (↓)', () => cambiar('velocidad', -1)),
-      boton('🐇', 'Más rápido (↑)', () => cambiar('velocidad', 1)),
-      boton('A−', 'Letra más pequeña (−)', () => cambiar('tamano', -4)),
-      boton('A+', 'Letra más grande (+)', () => cambiar('tamano', 4)),
-      boton('⇋', 'Espejo, para teleprompter con cristal (M)', () => { ajustes.espejo = !ajustes.espejo; guardarAjustes(); aplicarAjustes(); }),
-      estado,
-      boton('✕', 'Salir (Esc)', cerrar, 'tp-salir'),
-    );
+    controles.append(play, desde, velocidad);
 
-    caja.append(texto, el('div', 'tp-guia'), marcador, controles);
+    caja.append(el('div', 'tp-franja'), el('div', 'tp-sombra-arriba'), el('div', 'tp-sombra-abajo'), salir, texto, marcador, controles);
     // Tocar el texto pausa o reanuda (útil desde el celular o con un mando).
     texto.addEventListener('click', alternar);
     document.body.append(caja);
