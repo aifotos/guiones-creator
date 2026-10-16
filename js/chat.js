@@ -76,18 +76,19 @@ const Chat = (() => {
     return ajustar;
   }
 
-  // Ventana de chat flotante con forma de celular. En pantallas grandes empieza
-  // abierta; en pantallas medianas y en el celular empieza cerrada y se abre
-  // con el botón redondo (en el celular, a pantalla completa).
+  // Ventana de chat flotante con forma de celular. En pantallas grandes va junto
+  // al guion y empieza abierta; en pantallas medianas y en el celular empieza
+  // cerrada y se abre con el botón redondo (en el celular, a pantalla completa).
   // Recuerda si la dejaste abierta o minimizada.
-  function flotante({ telefono, botonAbrir, botonesCerrar, clave, alAbrir }) {
+  // anchoAbierto: desde qué ancho de ventana cabe junto al guion y empieza abierto.
+  function flotante({ telefono, botonAbrir, botonesCerrar, clave, alAbrir, anchoAbierto = 1200 }) {
     const esCelular = () => window.innerWidth <= 900;
     let minimizado;
     try {
       const guardado = localStorage.getItem(clave);
-      minimizado = guardado === null ? window.innerWidth < 1250 : guardado === '1';
+      minimizado = guardado === null ? window.innerWidth < anchoAbierto : guardado === '1';
     } catch {
-      minimizado = window.innerWidth < 1250;
+      minimizado = window.innerWidth < anchoAbierto;
     }
     if (esCelular()) minimizado = true;
 

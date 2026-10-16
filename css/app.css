@@ -1092,9 +1092,40 @@ body.chat-minimizado .chat-abrir { display: grid; }
   border: 2px solid #fff;
 }
 
-/* En pantallas anchas se deja sitio a la derecha para que el celular no tape el guion. */
-@media (min-width: 1250px) {
-  body:not(.chat-minimizado) .con-chat { padding-right: 372px; }
+/* Con sitio suficiente, el celular va en una columna justo a la derecha del guion
+   y se queda pegado arriba al bajar y subir (sticky). Sin sitio, flota sobre la
+   página en la esquina (reglas de arriba). */
+@media (min-width: 1000px) {
+  .pagina-cliente .cliente-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 820px) 320px;
+    gap: 28px;
+    justify-content: center;
+    align-items: start;
+    max-width: none;
+  }
+  .pagina-cliente .cliente-layout .telefono { position: sticky; top: 72px; right: auto; bottom: auto; }
+}
+@media (min-width: 1200px) {
+  body:not(.pagina-cliente) .documento {
+    display: grid;
+    grid-template-columns: minmax(0, 760px) 320px;
+    gap: 28px;
+    justify-content: center;
+    align-items: start;
+    max-width: none;
+  }
+  .doc-contenido { min-width: 0; }
+  body:not(.pagina-cliente) .documento .telefono { position: sticky; top: 72px; right: auto; bottom: auto; }
+}
+/* Minimizado en la columna: desaparece y el guion recupera todo el ancho. */
+@media (min-width: 1000px) {
+  body.chat-minimizado.pagina-cliente .cliente-layout { grid-template-columns: minmax(0, 820px); }
+  body.chat-minimizado.pagina-cliente .cliente-layout .telefono { display: none; }
+}
+@media (min-width: 1200px) {
+  body.chat-minimizado:not(.pagina-cliente) .documento { grid-template-columns: minmax(0, 760px); }
+  body.chat-minimizado:not(.pagina-cliente) .documento .telefono { display: none; }
 }
 
 /* En el celular: sin marco, el chat ocupa toda la pantalla. */

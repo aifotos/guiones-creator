@@ -302,6 +302,7 @@
     botonAbrir: $('chat-abrir'),
     botonesCerrar: [$('chat-cerrar')],
     clave: 'guiones-creator:chat-minimizado',
+    anchoAbierto: 1000,
     alAbrir: () => { if (actual) pintarChat({ alFinal: true }); },
   });
   const ajustarCampo = Chat.prepararCampo($('comentario-texto'), $('form-comentario'));

@@ -206,6 +206,7 @@
     botonAbrir: $('chat-abrir'),
     botonesCerrar: [$('chat-cerrar')],
     clave: 'guiones-creator:chat-panel-minimizado',
+    anchoAbierto: 1200,
     alAbrir: () => { if (actual) pintarComentariosDoc({ alFinal: true }); },
   });
 
