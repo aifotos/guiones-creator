@@ -71,6 +71,13 @@ siguiente hasta que tú la apruebes.
 
 **Resultado:** puedes redactar guiones cómodamente, aunque todavía solo en tu Mac.
 
+**Mejoras tras tu prueba:**
+- [x] Tres formatos: **Sencillo** (solo texto, para cualquier cliente), **Video / redes** y **Cinematográfico** (screenplay). Se puede cambiar en cualquier momento.
+- [x] Personajes: nombre, acotación y lista de personajes con contador de diálogos.
+- [x] Sugerencias de escena: `int`/`ext` → INT./EXT., lugares ya usados y DÍA/NOCHE/TARDE…
+- [x] Análisis inteligente al pegar, también pegando directamente dentro de un bloque.
+- [x] Botón **Eliminar** arriba, junto al formato.
+
 ### Fase 2 — Clientes y links
 - [ ] Base de datos en Cloudflare.
 - [ ] Panel de administrador con tu contraseña.

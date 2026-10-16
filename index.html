@@ -42,22 +42,33 @@
             <button class="pestana activa" data-modo="editar" role="tab">Editar</button>
             <button class="pestana" data-modo="leer" role="tab">Vista del cliente</button>
           </div>
-          <div class="doc-estado">
-            <span class="dato" id="dato-duracion" title="Calculado a 150 palabras por minuto">—</span>
-            <span class="dato" id="dato-palabras">—</span>
-            <span class="guardado" id="guardado"></span>
+          <div class="doc-acciones">
+            <label class="formato-selector" title="Tipo de guión">
+              <span>Formato</span>
+              <select id="formato"></select>
+            </label>
+            <button class="boton boton-borrar" id="borrar" title="Eliminar este guión">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+              <span>Eliminar</span>
+            </button>
           </div>
+        </div>
+        <div class="doc-estado">
+          <span class="dato" id="dato-duracion" title="Calculado a 150 palabras por minuto">—</span>
+          <span class="dato" id="dato-palabras">—</span>
+          <span class="guardado" id="guardado"></span>
         </div>
 
         <div id="modo-editar">
           <input class="titulo" id="titulo" placeholder="Título del guión" autocomplete="off">
+          <div class="personajes" id="personajes" hidden></div>
+          <textarea class="sencillo-texto" id="sencillo" hidden placeholder="Escribe el guión tal como lo leerá tu cliente…"></textarea>
           <div class="bloques" id="bloques"></div>
-          <div class="agregar">
+          <div class="agregar" id="agregar-caja">
             <span class="agregar-texto">Añadir:</span>
             <div class="agregar-botones" id="agregar"></div>
           </div>
-          <p class="atajos">Atajos: <kbd>⌘</kbd> + <kbd>Enter</kbd> crea un bloque debajo · borrar un bloque vacío lo elimina.</p>
-          <button class="boton boton-peligro" id="borrar">Eliminar este guión</button>
+          <p class="atajos" id="atajos"></p>
         </div>
 
         <article class="lectura" id="modo-leer" hidden></article>
@@ -65,10 +76,28 @@
     </main>
   </div>
 
+  <dialog class="dialogo" id="dialogo-nuevo">
+    <form method="dialog" class="dialogo-contenido">
+      <h2>Nuevo guión</h2>
+      <label class="campo">
+        <span>Título</span>
+        <input id="nuevo-titulo" placeholder="Ej.: Reel lanzamiento Restaurante X" autocomplete="off">
+      </label>
+      <div class="campo">
+        <span>¿Qué tipo de guión?</span>
+        <div class="formatos" id="nuevo-formatos"></div>
+      </div>
+      <div class="dialogo-acciones">
+        <button class="boton" value="cancelar" formnovalidate>Cancelar</button>
+        <button class="boton boton-principal" value="crear">Crear guión</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog class="dialogo" id="dialogo-pegar">
     <form method="dialog" class="dialogo-contenido" id="form-pegar">
       <h2>Pegar un guión</h2>
-      <p class="dialogo-ayuda">Pega el texto tal cual. Si una línea empieza con <b>Escena 1:</b>, <b>VO:</b>, <b>Texto:</b> o <b>Nota:</b>, la app la reconoce. Lo demás queda como texto <b>en cámara</b> y lo puedes cambiar después.</p>
+      <p class="dialogo-ayuda">Pega el texto tal cual, venga de Word, Google Docs, WhatsApp o un PDF. La app reconoce escenas (INT./EXT., Escena 1, Hook, CTA…), personajes, voz en off, texto en pantalla y notas, y ordena cada cosa en su sitio.</p>
       <label class="campo">
         <span>Título</span>
         <input id="pegar-titulo" placeholder="Ej.: Reel lanzamiento Restaurante X" autocomplete="off">
@@ -76,6 +105,10 @@
       <label class="campo">
         <span>Guión</span>
         <textarea id="pegar-texto" rows="12" placeholder="Pega aquí tu guión…"></textarea>
+      </label>
+      <label class="campo">
+        <span>Formato</span>
+        <select id="pegar-formato"></select>
       </label>
       <p class="dialogo-ayuda" id="pegar-resumen"></p>
       <div class="dialogo-acciones">
@@ -87,6 +120,7 @@
 
   <script src="js/guion.js"></script>
   <script src="js/almacen.js"></script>
+  <script src="js/sugerencias.js"></script>
   <script src="js/vista.js"></script>
   <script src="js/app.js"></script>
 </body>

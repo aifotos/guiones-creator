@@ -42,8 +42,8 @@ const Almacen = (() => {
     return escribirTodo(leerTodo().filter((g) => g.id !== id));
   }
 
-  function crear(titulo = '', bloques = []) {
-    const guion = { id: Guion.nuevoId(), titulo, bloques, creado: Date.now(), actualizado: Date.now() };
+  function crear(titulo = '', bloques = [], formato = 'video') {
+    const guion = { id: Guion.nuevoId(), titulo, formato, bloques, personajes: [], creado: Date.now(), actualizado: Date.now() };
     guardar(guion);
     return guion;
   }
