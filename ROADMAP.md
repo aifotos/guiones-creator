@@ -63,11 +63,11 @@ siguiente hasta que tú la apruebes.
 **Resultado:** todo listo para empezar a construir.
 
 ### Fase 1 — El editor (funciona en tu Mac)
-- [ ] Pantalla para **escribir o pegar** un guión.
-- [ ] Formato de guión para video: escenas/tomas, texto en cámara, voz en off,
+- [x] Pantalla para **escribir o pegar** un guión.
+- [x] Formato de guión para video: escenas/tomas, texto en cámara, voz en off,
       notas de dirección, duración estimada.
-- [ ] Conteo de palabras y tiempo aproximado de lectura.
-- [ ] Vista limpia de "lectura" (como lo verá el cliente).
+- [x] Conteo de palabras y tiempo aproximado de lectura.
+- [x] Vista limpia de "lectura" (como lo verá el cliente).
 
 **Resultado:** puedes redactar guiones cómodamente, aunque todavía solo en tu Mac.
 

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guiones Creator · aifotos</title>
+  <link rel="icon" href="assets/logo-aifotos.png">
+  <link rel="stylesheet" href="assets/marca.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="barra">
+    <button class="boton-icono solo-movil" id="abrir-lista" aria-label="Ver guiones">☰</button>
+    <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
+    <span class="barra-nombre">Guiones Creator</span>
+  </header>
+
+  <div class="marco">
+    <aside class="lateral" id="lateral">
+      <div class="lateral-acciones">
+        <button class="boton boton-principal" id="nuevo">+ Nuevo guión</button>
+        <button class="boton" id="pegar">Pegar guión</button>
+      </div>
+      <h2 class="lateral-titulo">Mis guiones</h2>
+      <ul class="lista" id="lista"></ul>
+    </aside>
+
+    <main class="principal" id="principal">
+      <div class="vacio" id="vacio" hidden>
+        <img src="assets/logo-aifotos.png" alt="" class="vacio-logo">
+        <h1>Tu primer guión</h1>
+        <p>Escribe uno desde cero o pega un guión que ya tengas: la app lo ordena en escenas, voz en off, texto en pantalla y notas.</p>
+        <div class="vacio-acciones">
+          <button class="boton boton-principal" data-accion="nuevo">Escribir un guión</button>
+          <button class="boton" data-accion="pegar">Pegar un guión</button>
+        </div>
+      </div>
+
+      <div class="documento" id="documento" hidden>
+        <div class="doc-barra">
+          <div class="pestanas" role="tablist">
+            <button class="pestana activa" data-modo="editar" role="tab">Editar</button>
+            <button class="pestana" data-modo="leer" role="tab">Vista del cliente</button>
+          </div>
+          <div class="doc-estado">
+            <span class="dato" id="dato-duracion" title="Calculado a 150 palabras por minuto">—</span>
+            <span class="dato" id="dato-palabras">—</span>
+            <span class="guardado" id="guardado"></span>
+          </div>
+        </div>
+
+        <div id="modo-editar">
+          <input class="titulo" id="titulo" placeholder="Título del guión" autocomplete="off">
+          <div class="bloques" id="bloques"></div>
+          <div class="agregar">
+            <span class="agregar-texto">Añadir:</span>
+            <div class="agregar-botones" id="agregar"></div>
+          </div>
+          <p class="atajos">Atajos: <kbd>⌘</kbd> + <kbd>Enter</kbd> crea un bloque debajo · borrar un bloque vacío lo elimina.</p>
+          <button class="boton boton-peligro" id="borrar">Eliminar este guión</button>
+        </div>
+
+        <article class="lectura" id="modo-leer" hidden></article>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="dialogo" id="dialogo-pegar">
+    <form method="dialog" class="dialogo-contenido" id="form-pegar">
+      <h2>Pegar un guión</h2>
+      <p class="dialogo-ayuda">Pega el texto tal cual. Si una línea empieza con <b>Escena 1:</b>, <b>VO:</b>, <b>Texto:</b> o <b>Nota:</b>, la app la reconoce. Lo demás queda como texto <b>en cámara</b> y lo puedes cambiar después.</p>
+      <label class="campo">
+        <span>Título</span>
+        <input id="pegar-titulo" placeholder="Ej.: Reel lanzamiento Restaurante X" autocomplete="off">
+      </label>
+      <label class="campo">
+        <span>Guión</span>
+        <textarea id="pegar-texto" rows="12" placeholder="Pega aquí tu guión…"></textarea>
+      </label>
+      <p class="dialogo-ayuda" id="pegar-resumen"></p>
+      <div class="dialogo-acciones">
+        <button class="boton" value="cancelar" formnovalidate>Cancelar</button>
+        <button class="boton boton-principal" value="crear" id="pegar-crear" disabled>Crear guión</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/guion.js"></script>
+  <script src="js/almacen.js"></script>
+  <script src="js/vista.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
