@@ -166,3 +166,35 @@
 
 .dialogo-pregunta { width: min(420px, calc(100vw - 32px)); }
 .dialogo-pregunta p { margin: 0; font-size: 17px; line-height: 1.5; }
+
+/* ---------- Pedir el WhatsApp del cliente ---------- */
+
+.dialogo-whatsapp { width: min(420px, calc(100vw - 32px)); }
+.dialogo-whatsapp .dialogo-contenido { text-align: center; }
+.dialogo-whatsapp h2 { font-size: 21px; }
+.whatsapp-icono {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #25D366;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(37, 211, 102, .35);
+}
+.whatsapp-icono svg { width: 34px; height: 34px; fill: currentColor; }
+.whatsapp-numero { display: flex; gap: 8px; }
+.whatsapp-numero select, .whatsapp-numero input {
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 17px;
+  background: #FDFCFB;
+}
+.whatsapp-numero input { flex: 1; min-width: 0; }
+.whatsapp-numero input:focus, .whatsapp-numero select:focus { outline: 2px solid #25D366; outline-offset: 0; }
+.dialogo-whatsapp .acceso-error:empty { display: none; }
+.dialogo-whatsapp .dialogo-acciones { justify-content: center; }
+.boton-guardar-whatsapp { background: #25D366; border-color: #25D366; color: #fff; }
+.boton-guardar-whatsapp:hover { background: #1FBE5B; border-color: #1FBE5B; }

@@ -7,9 +7,9 @@
   <meta name="referrer" content="no-referrer">
   <title>Tus guiones · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161251">
-  <link rel="stylesheet" href="css/app.css?v=202610161251">
-  <link rel="stylesheet" href="css/cliente.css?v=202610161251">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161301">
+  <link rel="stylesheet" href="css/app.css?v=202610161301">
+  <link rel="stylesheet" href="css/cliente.css?v=202610161301">
 </head>
 <body class="pagina-cliente">
   <header class="barra">
@@ -109,6 +109,43 @@
     </form>
   </dialog>
 
+  <dialog class="dialogo dialogo-whatsapp" id="dialogo-whatsapp">
+    <form method="dialog" class="dialogo-contenido" id="form-whatsapp">
+      <div class="whatsapp-icono" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm0 1.6a7.4 7.4 0 1 1-3.8 13.8l-.3-.2-2.7.7.7-2.6-.2-.3A7.4 7.4 0 0 1 12 4.6zm-3 3.6c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.3s1 2.7 1.2 2.9c.1.2 2 3.1 4.9 4.2 2.4.9 2.9.8 3.4.7.5 0 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4l-.5-.3-1.8-.9c-.3-.1-.5-.1-.7.2l-.8 1c-.2.2-.3.2-.6.1-.3-.2-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.3-.5v-.5l-.8-2c-.2-.5-.4-.5-.6-.5H9z"/></svg>
+      </div>
+      <h2>¿A qué WhatsApp te avisamos?</h2>
+      <p class="dialogo-ayuda">Cuando aifotos te escriba o tenga una versión nueva de tu guión, te avisará por WhatsApp. Solo te lo pedimos una vez.</p>
+      <div class="whatsapp-numero">
+        <select id="whatsapp-pais" aria-label="Código de país">
+          <option value="1">🇩🇴 +1</option>
+          <option value="1">🇺🇸 +1</option>
+          <option value="1">🇵🇷 +1</option>
+          <option value="34">🇪🇸 +34</option>
+          <option value="52">🇲🇽 +52</option>
+          <option value="57">🇨🇴 +57</option>
+          <option value="58">🇻🇪 +58</option>
+          <option value="51">🇵🇪 +51</option>
+          <option value="507">🇵🇦 +507</option>
+          <option value="506">🇨🇷 +506</option>
+          <option value="54">🇦🇷 +54</option>
+          <option value="56">🇨🇱 +56</option>
+          <option value="593">🇪🇨 +593</option>
+          <option value="502">🇬🇹 +502</option>
+          <option value="503">🇸🇻 +503</option>
+          <option value="504">🇭🇳 +504</option>
+          <option value="">Otro</option>
+        </select>
+        <input id="whatsapp-telefono" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="809 555 1234" aria-label="Número de WhatsApp" required>
+      </div>
+      <p class="acceso-error" id="whatsapp-error" role="alert"></p>
+      <div class="dialogo-acciones">
+        <button class="boton" value="luego" formnovalidate>Ahora no</button>
+        <button class="boton boton-principal boton-guardar-whatsapp" value="guardar" id="whatsapp-guardar">Guardar mi WhatsApp</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog class="dialogo" id="dialogo-cita">
     <form method="dialog" class="dialogo-contenido" id="form-cita">
       <h2>Comentar esta frase</h2>
@@ -124,11 +161,11 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161251"></script>
-  <script src="js/guion.js?v=202610161251"></script>
-  <script src="js/diferencias.js?v=202610161251"></script>
-  <script src="js/chat.js?v=202610161251"></script>
-  <script src="js/vista.js?v=202610161251"></script>
-  <script src="js/cliente.js?v=202610161251"></script>
+  <script src="js/config.js?v=202610161301"></script>
+  <script src="js/guion.js?v=202610161301"></script>
+  <script src="js/diferencias.js?v=202610161301"></script>
+  <script src="js/chat.js?v=202610161301"></script>
+  <script src="js/vista.js?v=202610161301"></script>
+  <script src="js/cliente.js?v=202610161301"></script>
 </body>
 </html>

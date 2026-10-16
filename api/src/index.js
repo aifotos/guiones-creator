@@ -22,6 +22,7 @@
 //   PUT    /api/c/:token/guiones/:id                  { bloques, version } cambia los textos
 //   POST   /api/c/:token/guiones/:id/aprobar          aprueba el guion
 //   POST   /api/c/:token/guiones/:id/comentarios      { texto, cita? { bloque, texto } }
+//   POST   /api/c/:token/telefono                     { telefono } su WhatsApp (solo si aún no hay)
 
 const SESION_DIAS = 30;
 const MAX_FALLOS = 8;
@@ -399,7 +400,7 @@ async function desconectarTelegram(env) {
 // ---------- Cliente (con su link) ----------
 
 async function clienteDelLink(env, token) {
-  const cliente = await env.DB.prepare('SELECT id, nombre FROM clientes WHERE token = ? AND activo = 1').bind(token).first();
+  const cliente = await env.DB.prepare('SELECT id, nombre, telefono FROM clientes WHERE token = ? AND activo = 1').bind(token).first();
   if (!cliente) throw new ErrorHttp(404, 'Este link no existe o fue desactivado');
   return cliente;
 }
@@ -427,7 +428,8 @@ async function vistaCliente(env, token) {
   ]);
   const porGuion = agruparComentarios(comentarios.results);
   return json({
-    cliente: { nombre: cliente.nombre },
+    // No se devuelve el número: solo si ya está guardado, para no volver a pedirlo.
+    cliente: { nombre: cliente.nombre, tieneTelefono: !!cliente.telefono },
     guiones: guiones.results.map((g) => paraCliente(guionDeFila(g, porGuion[g.id]))),
   });
 }
@@ -476,6 +478,19 @@ async function clienteAprueba(env, ctx, token, id) {
   return json({ aprobado: ahora });
 }
 
+// El cliente deja su WhatsApp la primera vez que entra. Si ya hay uno guardado no se
+// puede cambiar desde el link (solo tú, desde el panel): así nadie con el link puede
+// cambiarlo por otro número y recibir tus mensajes.
+async function clienteGuardaTelefono(peticion, env, ctx, token) {
+  const cliente = await clienteDelLink(env, token);
+  if (cliente.telefono) throw new ErrorHttp(409, 'Ya tenemos tu WhatsApp guardado');
+  const telefono = String((await leerCuerpo(peticion)).telefono ?? '').replace(/\D/g, '');
+  if (telefono.length < 8 || telefono.length > 15) throw new ErrorHttp(400, 'Revisa el número: escríbelo con el código de país, por ejemplo +1 809 555 1234');
+  await env.DB.prepare("UPDATE clientes SET telefono = ?, actualizado = ? WHERE id = ? AND telefono = ''").bind(telefono, Date.now(), cliente.id).run();
+  ctx.waitUntil(avisar(env, `📱 <b>${escaparHtml(cliente.nombre)}</b> guardó su WhatsApp: +${telefono}\n\nSi no es correcto, cámbialo en su ficha del panel.`));
+  return json({ ok: true });
+}
+
 async function clienteComenta(peticion, env, ctx, token, id) {
   const cliente = await clienteDelLink(env, token);
   const fila = await guionDelCliente(env, cliente, id);
@@ -496,6 +511,7 @@ async function atender(peticion, env, ctx) {
 
   if (ruta === '/api/login' && metodo === 'POST') return login(peticion, env);
   if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})$/)) && metodo === 'GET') return vistaCliente(env, m[1]);
+  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/telefono$/)) && metodo === 'POST') return clienteGuardaTelefono(peticion, env, ctx, m[1]);
   if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)$/)) && metodo === 'PUT') return clienteEdita(peticion, env, ctx, m[1], m[2]);
   if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/aprobar$/)) && metodo === 'POST') return clienteAprueba(env, ctx, m[1], m[2]);
   if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/comentarios$/)) && metodo === 'POST') return clienteComenta(peticion, env, ctx, m[1], m[2]);

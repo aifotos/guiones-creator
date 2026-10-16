@@ -13,6 +13,7 @@
   let editando = false;
   let original = null;    // textos al empezar a editar: { idBloque: texto }
   let enviando = false;
+  let tieneTelefono = true;
 
   function el(etiqueta, clase, texto) {
     const nodo = document.createElement(etiqueta);
@@ -480,10 +481,59 @@
   function enrutar() {
     const [, id] = location.hash.slice(1).split('/');
     const g = guiones.find((x) => x.id === id);
-    if (g) mostrarGuion(g);
-    else if (guiones.length === 1) mostrarGuion(guiones[0]);
-    else mostrarLista();
+    if (g) return mostrarGuion(g);
+    if (guiones.length === 1) return mostrarGuion(guiones[0]);
+    return mostrarLista();
   }
+
+  // ---------- WhatsApp del cliente ----------
+  // La primera vez se le pide su número, para que aifotos le avise directamente a su chat.
+  // Si dice "Ahora no", se le vuelve a preguntar dentro de unos días.
+
+  const claveSinWhatsApp = `guiones-creator:whatsapp-luego:${codigo}`;
+  const TRES_DIAS = 3 * 24 * 60 * 60 * 1000;
+
+  function pedirWhatsApp() {
+    if (tieneTelefono) return;
+    let luego = 0;
+    try { luego = Number(localStorage.getItem(claveSinWhatsApp) || 0); } catch {}
+    if (Date.now() - luego < TRES_DIAS || document.querySelector('dialog[open]')) return;
+    $('whatsapp-error').textContent = '';
+    $('dialogo-whatsapp').returnValue = '';
+    $('dialogo-whatsapp').showModal();
+    $('whatsapp-telefono').focus();
+  }
+
+  $('form-whatsapp').addEventListener('submit', async (e) => {
+    if (e.submitter?.value !== 'guardar') {
+      try { localStorage.setItem(claveSinWhatsApp, String(Date.now())); } catch {}
+      return; // se cierra el diálogo
+    }
+    e.preventDefault();
+    const numero = $('whatsapp-telefono').value.replace(/\D/g, '');
+    const telefono = $('whatsapp-pais').value + numero;
+    if (numero.length < 6 || telefono.length < 8 || telefono.length > 15) {
+      $('whatsapp-error').textContent = $('whatsapp-pais').value
+        ? 'Revisa el número: parece incompleto.'
+        : 'Escribe el número con el código de tu país delante, por ejemplo 34 612 345 678.';
+      return;
+    }
+    $('whatsapp-guardar').disabled = true;
+    try {
+      await pedir('POST', '/telefono', { telefono });
+      tieneTelefono = true;
+      $('dialogo-whatsapp').close();
+      avisar('¡Gracias! Te avisaremos por WhatsApp cuando haya novedades.');
+    } catch (err) {
+      if (err.estado === 409) { tieneTelefono = true; $('dialogo-whatsapp').close(); return; }
+      $('whatsapp-error').textContent = err.message;
+    } finally {
+      $('whatsapp-guardar').disabled = false;
+    }
+  });
+  $('whatsapp-pais').addEventListener('change', () => {
+    $('whatsapp-telefono').placeholder = $('whatsapp-pais').value ? '809 555 1234' : 'Código de país + número';
+  });
 
   async function cargar() {
     if (!codigo) { $('estado').textContent = 'Este link no es válido. Pide uno nuevo a aifotos.'; return; }
@@ -491,11 +541,13 @@
       const datos = await pedir('GET', '');
       guiones = datos.guiones;
       nombreCliente = datos.cliente.nombre;
+      tieneTelefono = datos.cliente.tieneTelefono !== false;
       $('saludo').textContent = nombreCliente;
       $('saludo').hidden = false;
       if (!guiones.length) { $('estado').textContent = 'Todavía no hay guiones aquí.'; return; }
       $('estado').hidden = true;
-      enrutar();
+      await enrutar();
+      pedirWhatsApp();
     } catch (e) {
       $('estado').textContent = e.estado === 404
         ? 'Este link no existe o fue desactivado. Pide uno nuevo a aifotos.'
