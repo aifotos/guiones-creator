@@ -85,11 +85,20 @@
   aviso.setAttribute('role', 'status');
   document.body.append(aviso);
   let avisoTiempo = null;
-  function avisar(texto) {
-    aviso.textContent = texto;
+  // accion (opcional): { texto, alPulsar } añade un botón al aviso, que dura más.
+  function avisar(texto, accion) {
+    aviso.replaceChildren(texto);
+    if (accion) {
+      const boton = document.createElement('button');
+      boton.className = 'aviso-accion';
+      boton.textContent = accion.texto;
+      boton.addEventListener('click', () => { aviso.classList.remove('visible'); accion.alPulsar(); });
+      aviso.append(boton);
+    }
+    aviso.classList.toggle('con-accion', !!accion);
     aviso.classList.add('visible');
     clearTimeout(avisoTiempo);
-    avisoTiempo = setTimeout(() => aviso.classList.remove('visible'), 2800);
+    avisoTiempo = setTimeout(() => aviso.classList.remove('visible'), accion ? 8000 : 2800);
   }
 
   // ---------- Guardado ----------
@@ -307,6 +316,16 @@
       lista.append(grupo);
     }
     if (!clientes.length) lista.append(elemento('li', 'lista-vacia', 'Aún no hay clientes.'));
+    Chat.contarEnPestana('Guiones Creator · aifotos', totalNovedades());
+  }
+
+  // Cuántas cosas nuevas hizo el cliente en todos los guiones (para la pestaña y el sonido).
+  function totalNovedades() {
+    return Almacen.listar().reduce((n, g) => n + novedades(g).length + mensajesNuevos(g), 0);
+  }
+  function mensajesNuevos(g) {
+    const visto = vistos[g.id] || 0;
+    return Math.max(0, (g.comentarios || []).filter((c) => c.autor === 'cliente' && c.creado > visto).length - 1);
   }
 
   function fecha(ms) {
@@ -361,6 +380,8 @@
     const c = Almacen.obtenerCliente(actual.cliente_id);
     $('doc-cliente-nombre').textContent = c ? c.nombre : '';
     $('doc-copiar').hidden = !c || !c.activo;
+    $('doc-whatsapp').hidden = !c || !c.activo;
+    $('chat-whatsapp').hidden = !c || !c.activo;
   }
 
   // ---------- Panel del cliente y su link ----------
@@ -390,6 +411,7 @@
       : 'Este link está desactivado: quien lo abra no verá nada. Actívalo otra vez o genera uno nuevo.';
     $('link-copiar').disabled = !c.activo;
     $('link-whatsapp').disabled = !c.activo;
+    $('cliente-telefono').value = c.telefono || '';
     $('link-activar').textContent = c.activo ? 'Desactivar link' : 'Activar link';
 
     const ul = $('cliente-guiones');
@@ -428,10 +450,16 @@
     }
   }
 
-  function enviarWhatsApp(cliente) {
-    const texto = `Hola, aquí puedes ver y revisar tus guiones: ${Almacen.linkDe(cliente)}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+  // Abre WhatsApp con el mensaje ya escrito; tú solo pulsas enviar. Si el cliente
+  // tiene su número guardado se abre su chat; si no, eliges el contacto.
+  function enviarWhatsApp(cliente, guion) {
+    const texto = guion
+      ? `Hola, te escribí en tu guión «${guion.titulo || 'Guión'}». Puedes verlo y responderme aquí: ${Almacen.linkDe(cliente)}/${guion.id}`
+      : `Hola, aquí puedes ver y revisar tus guiones: ${Almacen.linkDe(cliente)}`;
+    window.open(`https://wa.me/${cliente.telefono || ''}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
   }
+
+  const avisarClienteDelGuion = () => enviarWhatsApp(Almacen.obtenerCliente(actual.cliente_id), actual);
 
   async function nuevoCliente() {
     const nombre = (prompt('Nombre del cliente:') || '').trim();
@@ -1062,6 +1090,16 @@
   $('link-url').addEventListener('focus', () => $('link-url').select());
   $('link-whatsapp').addEventListener('click', () => enviarWhatsApp(clientePanel()));
   $('doc-copiar').addEventListener('click', () => copiarLink(Almacen.obtenerCliente(actual.cliente_id)));
+  $('doc-whatsapp').addEventListener('click', avisarClienteDelGuion);
+  $('chat-whatsapp').addEventListener('click', avisarClienteDelGuion);
+
+  $('cliente-telefono').addEventListener('change', async () => {
+    const c = clientePanel();
+    const telefono = $('cliente-telefono').value.replace(/\D/g, '');
+    if (telefono === (c.telefono || '')) return;
+    const hecho = await intentar(() => Almacen.editarCliente(c.id, { telefono }), 'No se pudo guardar el WhatsApp');
+    if (hecho) { $('cliente-telefono').value = hecho.telefono; avisar(hecho.telefono ? 'WhatsApp del cliente guardado' : 'WhatsApp del cliente quitado'); }
+  });
   $('doc-cliente-nombre').addEventListener('click', () => abrirCliente(actual.cliente_id));
 
   $('link-activar').addEventListener('click', async () => {
@@ -1104,6 +1142,7 @@
     ajustarRespuesta();
     marcarVisto(guion);
     if (guion === actual) pintarComentariosDoc({ alFinal: true });
+    avisar('Mensaje enviado.', { texto: 'Avisar por WhatsApp', alPulsar: () => enviarWhatsApp(Almacen.obtenerCliente(guion.cliente_id), guion) });
   });
 
   // ---------- Ver lo que hizo el cliente sin recargar ----------
@@ -1111,13 +1150,23 @@
   // escribiendo, se espera a la siguiente vez para no interrumpirte.
 
   let refrescando = false;
+
+  // Crece cada vez que un cliente escribe, edita o aprueba: si sube al refrescar, suena el aviso.
+  function firmaCliente() {
+    return Almacen.listar().reduce((n, g) =>
+      n + (g.comentarios || []).filter((c) => c.autor === 'cliente').length
+        + (g.editado_por === 'cliente' ? g.version : 0)
+        + (g.aprobado ? 1 : 0), 0);
+  }
   async function refrescar() {
     if (refrescando || document.hidden || !Almacen.haySesion() || $('marco').hidden || hayCambiosSinGuardar()) return;
     if (document.querySelector('dialog[open]')) return;
     refrescando = true;
     try {
       const antes = actual;
+      const firmaAntes = firmaCliente();
       await Almacen.cargar();
+      if (firmaCliente() > firmaAntes) Chat.sonar();
       if (antes) {
         const nuevo = Almacen.obtener(antes.id);
         if (!nuevo) { abrir(null); return; }
@@ -1156,6 +1205,7 @@
   function mostrarAcceso(mensaje = '') {
     $('marco').hidden = true;
     $('salir').hidden = true;
+    $('abrir-avisos').hidden = true;
     $('cargando').hidden = true;
     $('acceso').hidden = false;
     $('acceso-error').textContent = mensaje;
@@ -1179,6 +1229,18 @@
     $('marco').hidden = false;
     $('salir').hidden = false;
 
+    $('abrir-avisos').hidden = false;
+
+    // Enlaces de los avisos de Telegram: #g:<id>, #g:<id>:cambios o #g:<id>:chat
+    const [, enlace, que] = location.hash.match(/^#g:([\w-]+)(?::(\w+))?$/) || [];
+    if (enlace) history.replaceState(null, '', location.pathname + location.search);
+    if (enlace && Almacen.obtener(enlace)) {
+      if (que === 'cambios') { verCambios = true; modo = 'leer'; }
+      abrir(enlace);
+      if (que === 'chat') chatFlotante.abrir();
+      return;
+    }
+
     let ultimo = null;
     try { ultimo = localStorage.getItem('guiones-creator:ultimo'); } catch {}
     const [tipo, id] = (ultimo || '').split(':');
@@ -1201,6 +1263,51 @@
       $('acceso-entrar').disabled = false;
     }
   });
+
+  // ---------- Avisos por Telegram ----------
+
+  async function pintarAvisosTelegram() {
+    $('avisos-error').textContent = '';
+    let estado;
+    try {
+      ({ telegram: estado } = await Almacen.avisos());
+    } catch (e) {
+      $('avisos-estado').textContent = `No se pudo consultar: ${e.message}`;
+      return;
+    }
+    $('avisos-estado').textContent = !estado.token
+      ? 'Falta el primer paso: crear tu bot en Telegram y guardar su código en Cloudflare (Claude te guía).'
+      : estado.conectado ? `✅ Conectado con ${estado.nombre || "tu Telegram"}.` : 'El bot está listo, falta conectarlo a tu Telegram:';
+    $('avisos-estado').className = `avisos-estado ${estado.conectado ? 'conectado' : ''}`;
+    $('avisos-pasos').hidden = !estado.token || estado.conectado;
+    $('avisos-conectar').hidden = !estado.token;
+    $('avisos-conectar').textContent = estado.conectado ? 'Conectar otro Telegram' : 'Conectar Telegram';
+    $('avisos-prueba').hidden = !estado.conectado;
+    $('avisos-desconectar').hidden = !estado.conectado;
+  }
+
+  async function accionTelegram(boton, accion, exito) {
+    boton.disabled = true;
+    $('avisos-error').textContent = '';
+    try {
+      const r = await accion();
+      if (exito) avisar(exito(r));
+      await pintarAvisosTelegram();
+    } catch (e) {
+      $('avisos-error').textContent = e.message;
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  $('abrir-avisos').addEventListener('click', () => {
+    $('avisos-estado').textContent = 'Comprobando…';
+    $('dialogo-avisos').showModal();
+    pintarAvisosTelegram();
+  });
+  $('avisos-conectar').addEventListener('click', () => accionTelegram($('avisos-conectar'), Almacen.conectarTelegram, (r) => `Conectado con ${r.nombre}. Revisa tu Telegram.`));
+  $('avisos-prueba').addEventListener('click', () => accionTelegram($('avisos-prueba'), Almacen.pruebaTelegram, () => 'Aviso de prueba enviado a tu Telegram'));
+  $('avisos-desconectar').addEventListener('click', () => accionTelegram($('avisos-desconectar'), Almacen.desconectarTelegram, () => 'Ya no recibirás avisos en Telegram'));
 
   $('salir').addEventListener('click', async () => {
     if (hayCambiosSinGuardar()) await guardarYa();

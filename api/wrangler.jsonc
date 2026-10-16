@@ -1,10 +1,12 @@
 // API de Guiones Creator: Cloudflare Worker + base de datos D1 (SQLite).
 // Publicar:  npx wrangler deploy
-// Secretos (no van en el código): ADMIN_PASSWORD y SESSION_SECRET
+// Secretos (no van en el código): ADMIN_PASSWORD, SESSION_SECRET y TELEGRAM_TOKEN (opcional)
 {
   "name": "guiones-creator-api",
   "main": "src/index.js",
   "compatibility_date": "2026-10-01",
+  // Dirección de la web, para los enlaces de los avisos de Telegram
+  "vars": { "SITIO": "https://aifotos.github.io/guiones-creator/" },
   "d1_databases": [
     {
       "binding": "DB",

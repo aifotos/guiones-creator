@@ -135,6 +135,12 @@ const Almacen = (() => {
     return (await pedir('GET', `/api/guiones/${id}/cambios`)).cambios;
   }
 
+  // Avisos por Telegram
+  const avisos = () => pedir('GET', '/api/avisos');
+  const conectarTelegram = () => pedir('POST', '/api/avisos/telegram/conectar');
+  const pruebaTelegram = () => pedir('POST', '/api/avisos/telegram/prueba');
+  const desconectarTelegram = () => pedir('DELETE', '/api/avisos/telegram');
+
   async function borrar(id) {
     await pedir('DELETE', `/api/guiones/${id}`);
     guiones = guiones.filter((g) => g.id !== id);
@@ -147,5 +153,6 @@ const Almacen = (() => {
     listarClientes, obtenerCliente, guionesDe, listar, obtener, linkDe,
     crearCliente, editarCliente, regenerarLink, borrarCliente,
     crear, guardar, reemplazar, borrar, comentar, cambios,
+    avisos, conectarTelegram, pruebaTelegram, desconectarTelegram,
   };
 })();

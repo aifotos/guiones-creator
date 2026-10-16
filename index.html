@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guiones Creator · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161223">
-  <link rel="stylesheet" href="css/app.css?v=202610161223">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161239">
+  <link rel="stylesheet" href="css/app.css?v=202610161239">
 </head>
 <body>
   <header class="barra">
     <button class="boton-icono solo-movil" id="abrir-lista" aria-label="Ver guiones">☰</button>
     <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
     <span class="barra-nombre">Guiones Creator</span>
+    <button class="boton-texto barra-avisos" id="abrir-avisos" hidden title="Avisos de Telegram">🔔 Avisos</button>
     <button class="boton-texto barra-salir" id="salir" hidden>Cerrar sesión</button>
   </header>
 
@@ -70,6 +71,10 @@
             <button class="boton boton-principal" id="link-copiar">Copiar link</button>
             <button class="boton boton-whatsapp" id="link-whatsapp">WhatsApp</button>
           </div>
+          <label class="campo campo-telefono">
+            <span>WhatsApp del cliente <small>(opcional: así el botón de WhatsApp abre directamente su chat)</small></span>
+            <input id="cliente-telefono" type="tel" inputmode="tel" placeholder="Con código de país, ej.: 1 809 555 1234" autocomplete="off">
+          </label>
           <div class="link-acciones">
             <button class="boton-texto" id="link-activar"></button>
             <button class="boton-texto" id="link-regenerar">Generar un link nuevo</button>
@@ -95,6 +100,7 @@
         <div class="doc-cliente" id="doc-cliente">
           <button class="doc-cliente-nombre" id="doc-cliente-nombre" title="Ver cliente y su link"></button>
           <button class="boton-texto" id="doc-copiar">Copiar link del cliente</button>
+          <button class="boton-whatsapp-texto" id="doc-whatsapp" title="Abre WhatsApp con un mensaje y el link de este guion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm0 1.6a7.4 7.4 0 1 1-3.8 13.8l-.3-.2-2.7.7.7-2.6-.2-.3A7.4 7.4 0 0 1 12 4.6zm-3 3.6c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.3s1 2.7 1.2 2.9c.1.2 2 3.1 4.9 4.2 2.4.9 2.9.8 3.4.7.5 0 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4l-.5-.3-1.8-.9c-.3-.1-.5-.1-.7.2l-.8 1c-.2.2-.3.2-.6.1-.3-.2-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.3-.5v-.5l-.8-2c-.2-.5-.4-.5-.6-.5H9z"/></svg>Avisar por WhatsApp</button>
         </div>
         <div class="doc-avisos" id="doc-avisos"></div>
         <div class="doc-barra">
@@ -164,6 +170,7 @@
                     <b id="chat-nombre">Cliente</b>
                     <small>Chat de este guión</small>
                   </div>
+                  <button class="chat-whatsapp" id="chat-whatsapp" title="Avisar al cliente por WhatsApp" aria-label="Avisar al cliente por WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm0 1.6a7.4 7.4 0 1 1-3.8 13.8l-.3-.2-2.7.7.7-2.6-.2-.3A7.4 7.4 0 0 1 12 4.6zm-3 3.6c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.3s1 2.7 1.2 2.9c.1.2 2 3.1 4.9 4.2 2.4.9 2.9.8 3.4.7.5 0 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4l-.5-.3-1.8-.9c-.3-.1-.5-.1-.7.2l-.8 1c-.2.2-.3.2-.6.1-.3-.2-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.3-.5v-.5l-.8-2c-.2-.5-.4-.5-.6-.5H9z"/></svg></button>
                 </header>
                 <ul class="chat-mensajes" id="doc-comentarios"></ul>
                 <form class="chat-escribir" id="form-respuesta">
@@ -183,6 +190,26 @@
       </div>
     </main>
   </div>
+
+  <dialog class="dialogo dialogo-avisos" id="dialogo-avisos">
+    <form method="dialog" class="dialogo-contenido">
+      <h2>🔔 Avisos en tu celular</h2>
+      <p class="dialogo-ayuda">Te llega un mensaje de Telegram cuando un cliente te escribe, cambia o aprueba un guion, aunque no tengas la app abierta.</p>
+      <p class="avisos-estado" id="avisos-estado">Comprobando…</p>
+      <ol class="avisos-pasos" id="avisos-pasos" hidden>
+        <li>Abre Telegram en tu celular y busca tu bot (el que creaste con @BotFather).</li>
+        <li>Pulsa <b>Iniciar</b> o escríbele «hola».</li>
+        <li>Vuelve aquí y pulsa <b>Conectar Telegram</b>.</li>
+      </ol>
+      <p class="acceso-error" id="avisos-error" role="alert"></p>
+      <div class="dialogo-acciones">
+        <button class="boton-texto peligro" type="button" id="avisos-desconectar" hidden>Desconectar</button>
+        <button class="boton" type="button" id="avisos-prueba" hidden>Enviar prueba</button>
+        <button class="boton boton-principal" type="button" id="avisos-conectar" hidden>Conectar Telegram</button>
+        <button class="boton" value="cerrar">Cerrar</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog class="dialogo" id="dialogo-nuevo">
     <form method="dialog" class="dialogo-contenido">
@@ -246,13 +273,13 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161223"></script>
-  <script src="js/guion.js?v=202610161223"></script>
-  <script src="js/almacen.js?v=202610161223"></script>
-  <script src="js/sugerencias.js?v=202610161223"></script>
-  <script src="js/diferencias.js?v=202610161223"></script>
-  <script src="js/chat.js?v=202610161223"></script>
-  <script src="js/vista.js?v=202610161223"></script>
-  <script src="js/app.js?v=202610161223"></script>
+  <script src="js/config.js?v=202610161239"></script>
+  <script src="js/guion.js?v=202610161239"></script>
+  <script src="js/almacen.js?v=202610161239"></script>
+  <script src="js/sugerencias.js?v=202610161239"></script>
+  <script src="js/diferencias.js?v=202610161239"></script>
+  <script src="js/chat.js?v=202610161239"></script>
+  <script src="js/vista.js?v=202610161239"></script>
+  <script src="js/app.js?v=202610161239"></script>
 </body>
 </html>

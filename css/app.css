@@ -1202,3 +1202,64 @@ body.chat-minimizado .chat-abrir { display: grid; }
   .lectura-titulo { font-size: 24px; }
   .lectura-texto { font-size: 17px; }
 }
+
+/* ---------- Avisos: Telegram y WhatsApp ---------- */
+
+.barra-avisos { margin-left: auto; color: var(--tinta-suave); text-decoration: none; }
+.barra-avisos + .barra-salir { margin-left: 0; }
+.dialogo-avisos { width: min(480px, calc(100vw - 32px)); }
+.avisos-estado { margin: 0; padding: 10px 14px; border-radius: 10px; background: #F6F4F0; font-weight: 600; }
+.avisos-estado.conectado { background: #E8F1EE; color: #2F5A52; }
+.avisos-pasos { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
+.dialogo-avisos .dialogo-acciones { flex-wrap: wrap; }
+.dialogo-avisos .peligro { margin-right: auto; }
+
+.boton-whatsapp-texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 12px 4px 8px;
+  background: #E3F7EA;
+  color: #0B6B33;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.boton-whatsapp-texto:hover { background: #D2F2DE; }
+.boton-whatsapp-texto svg, .chat-whatsapp svg { width: 18px; height: 18px; fill: currentColor; }
+.chat-whatsapp {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  margin-left: auto;
+  border: 0;
+  border-radius: 50%;
+  background: #25D366;
+  color: #fff;
+  cursor: pointer;
+}
+.chat-whatsapp:hover { background: #1FBE5B; }
+.chat-whatsapp[hidden] { display: none; }
+@media (min-width: 901px) {
+  .chat-cabecera:has(.chat-whatsapp:not([hidden])) .chat-cerrar { margin-left: 0; }
+}
+
+.campo-telefono { margin-top: 14px; font-weight: 600; }
+.campo-telefono small { font-weight: 400; color: var(--tinta-suave); }
+.campo-telefono input { max-width: 320px; }
+
+.aviso.con-accion { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding-right: 8px; }
+.aviso-accion {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: #25D366;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}

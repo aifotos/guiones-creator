@@ -12,6 +12,10 @@
 //   DELETE /api/guiones/:id
 //   POST   /api/guiones/:id/comentarios { texto }  responder al cliente
 //   GET    /api/guiones/:id/cambios     qué cambió el cliente (antes y después)
+//   GET    /api/avisos                  estado de los avisos por Telegram
+//   POST   /api/avisos/telegram/conectar  conecta el chat que acaba de escribir al bot
+//   POST   /api/avisos/telegram/prueba    manda un aviso de prueba
+//   DELETE /api/avisos/telegram           deja de mandar avisos
 //
 // Rutas del cliente (solo con su link secreto):
 //   GET    /api/c/:token                              su nombre, guiones y comentarios
@@ -211,9 +215,11 @@ async function editarCliente(peticion, env, id) {
   const d = await leerCuerpo(peticion);
   const nombre = d.nombre != null ? nombreCliente(d.nombre) : cliente.nombre;
   const activo = d.activo != null ? (d.activo ? 1 : 0) : cliente.activo;
+  // Solo cifras (con el código de país), como lo pide WhatsApp: 18095551234
+  const telefono = d.telefono != null ? String(d.telefono).replace(/\D/g, '').slice(0, 20) : cliente.telefono;
   const ahora = Date.now();
-  await env.DB.prepare('UPDATE clientes SET nombre = ?, activo = ?, actualizado = ? WHERE id = ?').bind(nombre, activo, ahora, id).run();
-  return json({ ...cliente, nombre, activo, actualizado: ahora });
+  await env.DB.prepare('UPDATE clientes SET nombre = ?, activo = ?, telefono = ?, actualizado = ? WHERE id = ?').bind(nombre, activo, telefono, ahora, id).run();
+  return json({ ...cliente, nombre, activo, telefono, actualizado: ahora });
 }
 
 async function regenerarLink(env, id) {
@@ -311,6 +317,79 @@ async function guardarComentario(env, guionId, autor, { texto, cita } = {}) {
   return comentario;
 }
 
+// ---------- Avisos por Telegram ----------
+// El bot lo creas tú en Telegram (@BotFather); su token es un secreto de Cloudflare
+// (TELEGRAM_TOKEN) y el chat al que escribir se guarda en la tabla ajustes.
+
+const escaparHtml = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const recortar = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+
+async function ajuste(env, clave) {
+  return (await env.DB.prepare('SELECT valor FROM ajustes WHERE clave = ?').bind(clave).first())?.valor ?? null;
+}
+
+async function telegram(env, metodo, datos) {
+  const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/${metodo}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos || {}),
+  });
+  const cuerpo = await r.json().catch(() => ({}));
+  if (!cuerpo.ok) throw new ErrorHttp(502, `Telegram respondió: ${cuerpo.description || r.status}`);
+  return cuerpo.result;
+}
+
+// Manda un aviso si Telegram está conectado. Nunca hace fallar lo que el cliente estaba haciendo.
+async function avisar(env, html) {
+  try {
+    const chat = await ajuste(env, 'telegram_chat');
+    if (!env.TELEGRAM_TOKEN || !chat) return;
+    await telegram(env, 'sendMessage', { chat_id: chat, text: html, parse_mode: 'HTML', disable_web_page_preview: true });
+  } catch (e) {
+    console.error('Aviso de Telegram no enviado', e);
+  }
+}
+
+const enlaceGuion = (env, id, extra = '') => `${env.SITIO}#g:${id}${extra}`;
+
+async function estadoAvisos(env) {
+  return json({
+    telegram: {
+      token: !!env.TELEGRAM_TOKEN,
+      conectado: !!(await ajuste(env, 'telegram_chat')),
+      nombre: await ajuste(env, 'telegram_nombre'),
+    },
+  });
+}
+
+// Busca el último mensaje que alguien mandó al bot y guarda ese chat como destino de los avisos.
+async function conectarTelegram(env) {
+  if (!env.TELEGRAM_TOKEN) throw new ErrorHttp(400, 'Falta el token del bot en Cloudflare');
+  const mensajes = await telegram(env, 'getUpdates', { allowed_updates: ['message'] });
+  const ultimo = [...mensajes].reverse().find((u) => u.message?.chat?.id);
+  if (!ultimo) throw new ErrorHttp(404, 'Todavía no le has escrito al bot. Ábrelo en Telegram, pulsa Iniciar (o escribe "hola") y vuelve a intentarlo.');
+  const chat = ultimo.message.chat;
+  const nombre = [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.title || chat.username || 'Telegram';
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO ajustes (clave, valor) VALUES ('telegram_chat', ?) ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor").bind(String(chat.id)),
+    env.DB.prepare("INSERT INTO ajustes (clave, valor) VALUES ('telegram_nombre', ?) ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor").bind(nombre),
+  ]);
+  await telegram(env, 'sendMessage', { chat_id: chat.id, text: '✅ Listo. A partir de ahora te aviso aquí cuando un cliente te escriba, cambie o apruebe un guion.' });
+  return json({ nombre });
+}
+
+async function pruebaTelegram(env) {
+  const chat = await ajuste(env, 'telegram_chat');
+  if (!env.TELEGRAM_TOKEN || !chat) throw new ErrorHttp(400, 'Telegram no está conectado');
+  await telegram(env, 'sendMessage', { chat_id: chat, text: '🔔 Aviso de prueba de Guiones Creator. ¡Funciona!' });
+  return json({ ok: true });
+}
+
+async function desconectarTelegram(env) {
+  await env.DB.prepare("DELETE FROM ajustes WHERE clave IN ('telegram_chat', 'telegram_nombre')").run();
+  return json({ ok: true });
+}
+
 // ---------- Cliente (con su link) ----------
 
 async function clienteDelLink(env, token) {
@@ -349,7 +428,7 @@ async function vistaCliente(env, token) {
 
 // El cliente solo cambia textos: no puede añadir, quitar ni reordenar bloques.
 // Cambiar el guion quita la aprobación (hay que volver a aprobarlo).
-async function clienteEdita(peticion, env, token, id) {
+async function clienteEdita(peticion, env, ctx, token, id) {
   const cliente = await clienteDelLink(env, token);
   const fila = await guionDelCliente(env, cliente, id);
   const d = await leerCuerpo(peticion);
@@ -373,29 +452,37 @@ async function clienteEdita(peticion, env, token, id) {
   }
   await env.DB.prepare('UPDATE clientes SET actualizado = ? WHERE id = ?').bind(ahora, cliente.id).run();
   const actualizada = await guionDelCliente(env, cliente, id);
+  ctx.waitUntil(avisar(env,
+    `✏️ <b>${escaparHtml(cliente.nombre)}</b> hizo cambios en «${escaparHtml(fila.titulo || 'Guion sin título')}».\n\n<a href="${enlaceGuion(env, id, ':cambios')}">Ver qué cambió</a>`));
   return json(paraCliente(guionDeFila(actualizada, await comentariosDe(env, id))));
 }
 
-async function clienteAprueba(env, token, id) {
+async function clienteAprueba(env, ctx, token, id) {
   const cliente = await clienteDelLink(env, token);
-  await guionDelCliente(env, cliente, id);
+  const fila = await guionDelCliente(env, cliente, id);
   const ahora = Date.now();
   await env.DB.batch([
     env.DB.prepare('UPDATE guiones SET aprobado = ? WHERE id = ?').bind(ahora, id),
     env.DB.prepare('UPDATE clientes SET actualizado = ? WHERE id = ?').bind(ahora, cliente.id),
   ]);
+  ctx.waitUntil(avisar(env,
+    `✅ <b>${escaparHtml(cliente.nombre)}</b> aprobó «${escaparHtml(fila.titulo || 'Guion sin título')}».\n\n<a href="${enlaceGuion(env, id)}">Abrir el guion</a>`));
   return json({ aprobado: ahora });
 }
 
-async function clienteComenta(peticion, env, token, id) {
+async function clienteComenta(peticion, env, ctx, token, id) {
   const cliente = await clienteDelLink(env, token);
-  await guionDelCliente(env, cliente, id);
-  return json(await guardarComentario(env, id, 'cliente', await leerCuerpo(peticion)), 201);
+  const fila = await guionDelCliente(env, cliente, id);
+  const comentario = await guardarComentario(env, id, 'cliente', await leerCuerpo(peticion));
+  const cita = comentario.cita ? `\n<i>Sobre: «${escaparHtml(recortar(comentario.cita.texto, 120))}»</i>` : '';
+  ctx.waitUntil(avisar(env,
+    `💬 <b>${escaparHtml(cliente.nombre)}</b> te escribió en «${escaparHtml(fila.titulo || 'Guion sin título')}»:${cita}\n\n${escaparHtml(recortar(comentario.texto, 600))}\n\n<a href="${enlaceGuion(env, id, ':chat')}">Responder</a>`));
+  return json(comentario, 201);
 }
 
 // ---------- Enrutador ----------
 
-async function atender(peticion, env) {
+async function atender(peticion, env, ctx) {
   const url = new URL(peticion.url);
   const ruta = url.pathname.replace(/\/+$/, '');
   const metodo = peticion.method;
@@ -403,13 +490,17 @@ async function atender(peticion, env) {
 
   if (ruta === '/api/login' && metodo === 'POST') return login(peticion, env);
   if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})$/)) && metodo === 'GET') return vistaCliente(env, m[1]);
-  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)$/)) && metodo === 'PUT') return clienteEdita(peticion, env, m[1], m[2]);
-  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/aprobar$/)) && metodo === 'POST') return clienteAprueba(env, m[1], m[2]);
-  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/comentarios$/)) && metodo === 'POST') return clienteComenta(peticion, env, m[1], m[2]);
+  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)$/)) && metodo === 'PUT') return clienteEdita(peticion, env, ctx, m[1], m[2]);
+  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/aprobar$/)) && metodo === 'POST') return clienteAprueba(env, ctx, m[1], m[2]);
+  if ((m = ruta.match(/^\/api\/c\/([\w-]{20,64})\/guiones\/([\w-]+)\/comentarios$/)) && metodo === 'POST') return clienteComenta(peticion, env, ctx, m[1], m[2]);
 
   if (ruta.startsWith('/api/')) {
     await exigirAdmin(peticion, env);
     if (ruta === '/api/todo' && metodo === 'GET') return todo(env);
+    if (ruta === '/api/avisos' && metodo === 'GET') return estadoAvisos(env);
+    if (ruta === '/api/avisos/telegram/conectar' && metodo === 'POST') return conectarTelegram(env);
+    if (ruta === '/api/avisos/telegram/prueba' && metodo === 'POST') return pruebaTelegram(env);
+    if (ruta === '/api/avisos/telegram' && metodo === 'DELETE') return desconectarTelegram(env);
     if (ruta === '/api/clientes' && metodo === 'POST') return crearCliente(peticion, env);
     if ((m = ruta.match(/^\/api\/clientes\/([\w-]+)\/regenerar$/)) && metodo === 'POST') return regenerarLink(env, m[1]);
     if ((m = ruta.match(/^\/api\/clientes\/([\w-]+)$/))) {
@@ -428,10 +519,10 @@ async function atender(peticion, env) {
 }
 
 export default {
-  async fetch(peticion, env) {
+  async fetch(peticion, env, ctx) {
     if (peticion.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     try {
-      return await atender(peticion, env);
+      return await atender(peticion, env, ctx);
     } catch (e) {
       if (e instanceof ErrorHttp) return json({ error: e.message }, e.estado);
       console.error(e);

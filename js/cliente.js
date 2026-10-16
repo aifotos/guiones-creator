@@ -294,6 +294,9 @@
     const sinLeer = (actual.comentarios || []).filter((c) => c.autor === 'admin' && c.creado > leidos).length;
     $('sin-leer').textContent = sinLeer;
     $('sin-leer').hidden = !sinLeer;
+    // Mientras la pestaña está en segundo plano, el número de mensajes nuevos se ve en su título.
+    const nuevos = document.hidden ? (actual.comentarios || []).filter((c) => c.autor === 'admin' && c.creado > vistoAlSalir).length : sinLeer;
+    Chat.contarEnPestana(`${actual.titulo || 'Guión'} · aifotos`, nuevos);
   }
 
   // El chat flota a un lado con forma de celular; en el celular va a pantalla completa.
@@ -357,7 +360,9 @@
       guiones = datos.guiones;
       const nuevo = guiones.find((g) => g.id === actual.id);
       if (!nuevo) return;
+      const deAifotos = (g) => (g.comentarios || []).filter((c) => c.autor === 'admin').length;
       const habiaMensajes = (actual.comentarios || []).length;
+      if (deAifotos(nuevo) > deAifotos(actual)) Chat.sonar();
       if (!editando && nuevo.version !== actual.version) {
         actual = nuevo;
         pintarGuion();
@@ -372,7 +377,13 @@
     } catch { /* sin conexión: se intentará otra vez */ }
   }
   setInterval(revisarNovedades, CADA_CUANTO_REVISAR);
-  document.addEventListener('visibilitychange', revisarNovedades);
+  // Al irse a otra pestaña se apunta la hora, para contar lo que llegue mientras tanto.
+  let vistoAlSalir = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) vistoAlSalir = Date.now();
+    else if (actual) pintarSinLeer();
+    revisarNovedades();
+  });
 
   // ---------- Comentar una frase seleccionada ----------
 

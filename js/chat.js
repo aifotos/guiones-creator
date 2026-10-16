@@ -117,5 +117,32 @@ const Chat = (() => {
     return { abrir: () => poner(false), cerrar: () => poner(true), visible: () => !minimizado };
   }
 
-  return { pintar, prepararCampo, flotante };
+  // Sonido corto de "mensaje nuevo" (dos notas), creado en el navegador: no hace falta archivo.
+  // Los navegadores solo dejan sonar después de que la persona haya tocado la página una vez.
+  let audio = null;
+  function sonar() {
+    try {
+      audio ||= new (window.AudioContext || window.webkitAudioContext)();
+      const ahora = audio.currentTime;
+      [[880, 0], [1318.5, 0.12]].forEach(([frecuencia, retraso]) => {
+        const nota = audio.createOscillator();
+        const volumen = audio.createGain();
+        nota.type = 'sine';
+        nota.frequency.value = frecuencia;
+        volumen.gain.setValueAtTime(0.0001, ahora + retraso);
+        volumen.gain.exponentialRampToValueAtTime(0.18, ahora + retraso + 0.02);
+        volumen.gain.exponentialRampToValueAtTime(0.0001, ahora + retraso + 0.35);
+        nota.connect(volumen).connect(audio.destination);
+        nota.start(ahora + retraso);
+        nota.stop(ahora + retraso + 0.4);
+      });
+    } catch { /* sin sonido: no pasa nada */ }
+  }
+
+  // "(3) Título": el número de novedades se ve en la pestaña aunque estés en otra.
+  function contarEnPestana(titulo, cuantas) {
+    document.title = cuantas ? `(${cuantas}) ${titulo}` : titulo;
+  }
+
+  return { pintar, prepararCampo, flotante, sonar, contarEnPestana };
 })();
