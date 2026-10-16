@@ -20,7 +20,8 @@ const Chat = (() => {
     return fecha.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
-  // opciones: { yo: 'cliente' | 'admin', nombres: { admin, cliente }, alTocarCita(c), vacio, alFinal }
+  // opciones: { yo: 'cliente' | 'admin', alTocarCita(c), vacio, alFinal }
+  // Propios a la derecha (negro), del otro a la izquierda (papel); la cita va encima, en ámbar.
   function pintar(lista, comentarios, opciones) {
     // Si estabas leyendo mensajes antiguos no te mueve; si estabas al final, sigue al final.
     const estabaAbajo = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80;
@@ -29,33 +30,25 @@ const Chat = (() => {
     for (const c of comentarios) {
       const d = dia(c.creado);
       if (d !== diaAnterior) {
-        const separador = el('li', 'chat-dia');
-        separador.append(el('span', '', d));
-        lista.append(separador);
+        lista.append(el('li', 'chat-evento', d));
         diaAnterior = d;
       }
       const propio = c.autor === opciones.yo;
       const li = el('li', `mensaje ${propio ? 'propio' : 'ajeno'}`);
       li.dataset.id = c.id;
-      const burbuja = el('div', 'burbuja');
-      if (!propio) burbuja.append(el('span', 'mensaje-autor', opciones.nombres[c.autor] || ''));
+      const cuerpo = el('div', 'mensaje-cuerpo');
       if (c.cita) {
-        const cita = el('button', 'mensaje-cita');
+        const cita = el('button', 'mensaje-cita', `“${c.cita.texto}”`);
         cita.type = 'button';
         cita.title = 'Ver la frase en el guión';
-        cita.append(el('span', 'mensaje-cita-titulo', 'Frase del guión'), el('span', 'mensaje-cita-texto', c.cita.texto));
         cita.addEventListener('click', () => opciones.alTocarCita?.(c));
-        burbuja.append(cita);
+        cuerpo.append(cita);
       }
-      const texto = el('p', 'mensaje-texto', c.texto);
-      const pie = el('span', 'mensaje-hora', hora(c.creado));
-      if (propio) pie.append(el('span', 'mensaje-visto', ' ✓✓'));
-      texto.append(pie);
-      burbuja.append(texto);
-      li.append(burbuja);
+      cuerpo.append(el('span', 'burbuja', c.texto), el('span', 'mensaje-hora', hora(c.creado)));
+      li.append(cuerpo);
       lista.append(li);
     }
-    if (!comentarios.length) lista.append(el('li', 'chat-vacio', opciones.vacio || 'Aún no hay mensajes.'));
+    if (!comentarios.length) lista.append(el('li', 'chat-evento', opciones.vacio || 'Aún no hay mensajes'));
     if (estabaAbajo || opciones.alFinal) lista.scrollTop = lista.scrollHeight;
   }
 
@@ -74,47 +67,6 @@ const Chat = (() => {
       }
     });
     return ajustar;
-  }
-
-  // Ventana de chat flotante con forma de celular. En pantallas grandes va junto
-  // al guion y empieza abierta; en pantallas medianas y en el celular empieza
-  // cerrada y se abre con el botón redondo (en el celular, a pantalla completa).
-  // Recuerda si la dejaste abierta o minimizada.
-  // anchoAbierto: desde qué ancho de ventana cabe junto al guion y empieza abierto.
-  function flotante({ telefono, botonAbrir, botonesCerrar, clave, alAbrir, anchoAbierto = 1200 }) {
-    const esCelular = () => window.innerWidth <= 900;
-    let minimizado;
-    try {
-      const guardado = localStorage.getItem(clave);
-      minimizado = guardado === null ? window.innerWidth < anchoAbierto : guardado === '1';
-    } catch {
-      minimizado = window.innerWidth < anchoAbierto;
-    }
-    if (esCelular()) minimizado = true;
-
-    function aplicar() {
-      telefono.classList.toggle('minimizado', minimizado);
-      document.body.classList.toggle('chat-minimizado', minimizado);
-    }
-
-    function poner(valor) {
-      minimizado = valor;
-      if (!esCelular()) { try { localStorage.setItem(clave, valor ? '1' : '0'); } catch {} }
-      aplicar();
-      if (!valor) alAbrir?.();
-    }
-
-    botonAbrir.addEventListener('click', () => poner(false));
-    for (const boton of botonesCerrar) boton.addEventListener('click', () => poner(true));
-    aplicar();
-
-    // La hora de la barra de estado del celular dibujado es la hora real.
-    const reloj = telefono.querySelector('.telefono-hora');
-    const ponerHora = () => { if (reloj) reloj.textContent = hora(Date.now()); };
-    ponerHora();
-    setInterval(ponerHora, 30000);
-
-    return { abrir: () => poner(false), cerrar: () => poner(true), visible: () => !minimizado };
   }
 
   // Sonido corto de "mensaje nuevo" (dos notas), creado en el navegador: no hace falta archivo.
@@ -144,5 +96,5 @@ const Chat = (() => {
     document.title = cuantas ? `(${cuantas}) ${titulo}` : titulo;
   }
 
-  return { pintar, prepararCampo, flotante, sonar, contarEnPestana };
+  return { pintar, prepararCampo, sonar, contarEnPestana };
 })();

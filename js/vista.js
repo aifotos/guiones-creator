@@ -1,6 +1,6 @@
-// Vista de lectura: cómo ve el cliente el guión, según su formato.
-// Con { editable: true } cada texto se convierte en un campo que se puede
-// cambiar en el mismo sitio (la página del cliente lo usa para editar).
+// Vista de lectura: cómo ve el cliente el guion (rediseño v2). La usan la página
+// del cliente y la pestaña "Vista del cliente" del panel.
+// Con { editable: true } cada línea se convierte en un campo para cambiarla.
 // Con { citas: [{ id, bloque, texto }] } las frases comentadas salen resaltadas.
 // Con { antes: Map(idBloque → texto anterior) } se marcan los cambios:
 // tachado lo que se borró y en verde lo que se añadió.
@@ -12,15 +12,6 @@ const Vista = (() => {
   // Un bloque se muestra si tiene texto, o si lo tenía antes (el cliente lo vació).
   const tieneTexto = (b) => !!b.texto.trim() || !!(antes && (antes.get(b.id) || '').trim());
 
-  // Pinta el texto marcando lo borrado y lo nuevo respecto a la versión anterior.
-  function marcarCambios(nodo, b) {
-    const anterior = antes.has(b.id) ? antes.get(b.id) : '';
-    for (const parte of Diferencias.comparar(anterior, b.texto)) {
-      if (parte.tipo === 'igual') nodo.append(parte.texto);
-      else nodo.append(el(parte.tipo === 'borrado' ? 'del' : 'ins', `cambio-${parte.tipo}`, parte.texto));
-    }
-  }
-
   function el(etiqueta, clase, texto) {
     const nodo = document.createElement(etiqueta);
     if (clase) nodo.className = clase;
@@ -31,6 +22,15 @@ const Vista = (() => {
   function ajustarAltura(area) {
     area.style.height = 'auto';
     area.style.height = area.scrollHeight + 'px';
+  }
+
+  // Pinta el texto marcando lo borrado y lo nuevo respecto a la versión anterior.
+  function marcarCambios(nodo, b) {
+    const anterior = antes.has(b.id) ? antes.get(b.id) : '';
+    for (const parte of Diferencias.comparar(anterior, b.texto)) {
+      if (parte.tipo === 'igual') nodo.append(parte.texto);
+      else nodo.append(el(parte.tipo === 'borrado' ? 'del' : 'ins', `cambio-${parte.tipo}`, parte.texto));
+    }
   }
 
   // Envuelve en <mark> cada frase comentada que aparezca en el texto del bloque.
@@ -57,7 +57,7 @@ const Vista = (() => {
   // El texto de un bloque: fijo para leer, o un campo para editar.
   function texto(b, clase) {
     if (!edicion) {
-      const nodo = el('div', clase);
+      const nodo = el('span', clase);
       nodo.dataset.bloque = b.id;
       if (antes) marcarCambios(nodo, b); else resaltar(nodo, b);
       return nodo;
@@ -78,82 +78,86 @@ const Vista = (() => {
     return area;
   }
 
+  // Tramo de tiempo de cada escena ("0–3 s"), sumando lo que se dice en las anteriores.
+  function tiempos(guion) {
+    const mapa = new Map();
+    let inicio = 0;
+    for (const g of Guion.porEscenas(guion.bloques)) {
+      const fin = inicio + g.segundos;
+      if (g.escena && g.segundos >= 0.5) mapa.set(g.escena.id, `${Math.round(inicio)}–${Math.round(fin)} s`);
+      inicio = fin;
+    }
+    return mapa;
+  }
+
   function cabecera(guion) {
     const est = Guion.estadisticas(guion.bloques);
-    const caja = el('header', 'lectura-cabecera');
-    caja.append(el('h1', 'lectura-titulo', guion.titulo || 'Guión sin título'));
-    caja.append(el('p', 'lectura-resumen', `Duración aproximada ${Guion.formatoDuracion(est.segundos)}`));
+    const caja = el('div', 'lectura-cabecera');
+    caja.append(
+      el('h2', 'lectura-titulo', guion.titulo || 'Guión sin título'),
+      el('span', 'lectura-resumen', `${Guion.FORMATOS[guion.formato]?.nombre || ''} · ≈ ${Guion.formatoDuracion(est.segundos)}`),
+    );
     return caja;
   }
 
-  function vacio() {
-    return el('p', 'lectura-vacio', 'Este guión todavía no tiene contenido.');
-  }
+  const vacio = () => el('p', 'lectura-vacio', 'Este guión todavía no tiene contenido.');
 
-  // ---------- Sencillo: solo párrafos ----------
-
-  function sencillo(guion, contenedor) {
-    if (edicion) return contenedor.append(texto(guion.bloques[0], 'lectura-parrafos'));
-    if (antes) return contenedor.append(texto(guion.bloques[0], 'lectura-parrafos lectura-parrafos-cambios'));
-    const contenido = guion.bloques.map((b) => b.texto).join('\n\n').trim();
-    if (!contenido) return contenedor.append(vacio());
-    for (const parrafo of contenido.split(/\n\s*\n/)) {
-      const p = el('p', 'lectura-parrafo');
-      p.dataset.bloque = guion.bloques[0].id;
-      resaltar(p, { id: guion.bloques[0].id, texto: parrafo.trim() });
-      contenedor.append(p);
+  // Una línea que se puede tocar para comentarla: quién la dice (si es hablada) y el texto.
+  function linea(b, formato) {
+    const caja = el('div', `linea linea-${b.tipo}`);
+    caja.dataset.linea = b.id;
+    const hablado = b.tipo === 'camara' || b.tipo === 'voz';
+    const quien = hablado ? (b.personaje || '') : '';
+    if (quien) {
+      const etiqueta = el('span', 'linea-quien', quien + (b.tipo === 'voz' ? ' · voz en off' : ''));
+      if (formato === 'cine' && b.acotacion && b.acotacion.trim()) etiqueta.append(el('span', 'linea-acotacion', ` (${b.acotacion.trim().replace(/^\(|\)$/g, '')})`));
+      caja.append(etiqueta);
     }
-  }
-
-  // ---------- Video / redes ----------
-
-  function bloqueVideo(b) {
-    const caja = el('div', `lectura-bloque lectura-${b.tipo}`);
-    if (b.tipo === 'camara' && b.personaje) caja.append(el('div', 'lectura-etiqueta lectura-quien', b.personaje));
-    else if (b.tipo !== 'camara') caja.append(el('div', 'lectura-etiqueta', Guion.nombreTipo(b.tipo, 'video')));
-    caja.append(texto(b, 'lectura-texto'));
+    caja.append(texto(b, 'linea-texto'));
     return caja;
   }
 
-  function video(guion, contenedor) {
+  function bloques(guion, contenedor) {
     const visibles = guion.bloques.filter((b) => tieneTexto(b) || b.tipo === 'escena');
     if (!visibles.length) return contenedor.append(vacio());
-    for (const grupo of Guion.porEscenas(visibles)) {
-      const seccion = el('section', 'lectura-escena');
-      if (grupo.escena) {
+    const tramos = tiempos(guion);
+    for (const b of visibles) {
+      if (b.tipo === 'escena') {
         const titulo = el('div', 'lectura-escena-titulo');
-        titulo.append(el('span', 'lectura-escena-numero', `Escena ${grupo.numero}`));
-        if (tieneTexto(grupo.escena)) titulo.append(texto(grupo.escena, 'lectura-escena-texto'));
-        if (grupo.segundos) titulo.append(el('span', 'lectura-escena-duracion', Guion.formatoDuracion(grupo.segundos)));
-        seccion.append(titulo);
+        titulo.append(el('span', 'lectura-escena-texto', b.texto || 'Escena'));
+        if (tramos.has(b.id)) titulo.append(el('span', 'lectura-escena-duracion', tramos.get(b.id)));
+        contenedor.append(titulo);
+      } else if (b.tipo === 'pantalla') {
+        const caja = el('div', 'lectura-pantalla');
+        caja.dataset.linea = b.id;
+        caja.append(el('span', 'lectura-etiqueta', 'En pantalla'), texto(b, 'lectura-rotulo'));
+        contenedor.append(caja);
+      } else {
+        contenedor.append(linea(b, guion.formato));
       }
-      for (const b of grupo.bloques) if (tieneTexto(b)) seccion.append(bloqueVideo(b));
-      contenedor.append(seccion);
     }
   }
 
-  // ---------- Cinematográfico (screenplay) ----------
-
-  function cine(guion, contenedor) {
-    const pagina = el('div', 'guion-cine');
-    let numero = 0;
-    for (const b of guion.bloques) {
-      if (!tieneTexto(b) && !(b.tipo === 'camara' && b.personaje)) continue;
-      if (b.tipo === 'escena') {
-        const linea = el('div', 'cine-escena');
-        linea.append(el('span', 'cine-numero', String(++numero)), texto(b, 'cine-escena-texto'));
-        pagina.append(linea);
-      } else if (b.tipo === 'camara') {
-        const dialogo = el('div', 'cine-dialogo');
-        dialogo.append(el('div', 'cine-personaje', b.personaje || ''));
-        if (b.acotacion && b.acotacion.trim()) dialogo.append(el('div', 'cine-acotacion', `(${b.acotacion.trim().replace(/^\(|\)$/g, '')})`));
-        dialogo.append(texto(b, 'cine-texto'));
-        pagina.append(dialogo);
-      } else {
-        pagina.append(texto(b, `cine-${b.tipo}`));
-      }
+  // Sencillo: cada párrafo es una línea (en edición, un solo campo con todo el texto).
+  function sencillo(guion, contenedor) {
+    const b = guion.bloques[0];
+    if (edicion) return contenedor.append(texto(b, 'linea-texto linea-sencillo'));
+    const contenido = guion.bloques.map((x) => x.texto).join('\n\n').trim();
+    if (!contenido) return contenedor.append(vacio());
+    if (antes) {
+      const caja = el('div', 'linea linea-parrafo');
+      caja.append(texto(b, 'linea-texto'));
+      return contenedor.append(caja);
     }
-    contenedor.append(pagina.childNodes.length ? pagina : vacio());
+    for (const parrafo of contenido.split(/\n\s*\n/)) {
+      const caja = el('div', 'linea linea-parrafo');
+      caja.dataset.linea = b.id;
+      const nodo = el('span', 'linea-texto');
+      nodo.dataset.bloque = b.id;
+      resaltar(nodo, { id: b.id, texto: parrafo.trim() });
+      caja.append(nodo);
+      contenedor.append(caja);
+    }
   }
 
   function render(guion, contenedor, opciones = {}) {
@@ -161,8 +165,11 @@ const Vista = (() => {
     citas = (opciones.citas || []).filter((c) => c && c.texto);
     antes = opciones.antes || null;
     contenedor.replaceChildren(cabecera(guion));
-    contenedor.className = `lectura lectura-formato-${guion.formato}${edicion ? ' en-edicion' : ''}`;
-    ({ sencillo, video, cine }[guion.formato] || video)(guion, contenedor);
+    contenedor.classList.add('lectura');
+    contenedor.classList.toggle('en-edicion', !!edicion);
+    contenedor.dataset.formato = guion.formato;
+    if (opciones.aviso) contenedor.append(opciones.aviso);
+    (guion.formato === 'sencillo' ? sencillo : bloques)(guion, contenedor);
     edicion = null;
     citas = [];
     antes = null;

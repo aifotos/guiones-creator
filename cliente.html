@@ -10,103 +10,63 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161547">
-  <link rel="stylesheet" href="css/impresion.css?v=202610161547">
-  <link rel="stylesheet" href="css/app.css?v=202610161547">
-  <link rel="stylesheet" href="css/cliente.css?v=202610161547">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161621">
+  <link rel="stylesheet" href="css/impresion.css?v=202610161621">
+  <link rel="stylesheet" href="css/app.css?v=202610161621">
+  <link rel="stylesheet" href="css/cliente.css?v=202610161621">
 </head>
 <body class="pagina-cliente">
-  <header class="barra">
-    <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
-    <span class="barra-cliente" id="saludo" hidden></span>
-  </header>
-
-  <main class="cliente-principal">
+  <main class="vc" id="vc">
     <p class="cliente-estado" id="estado">Cargando tus guiones…</p>
 
     <nav class="cliente-lista" id="lista" hidden aria-label="Tus guiones"></nav>
 
-    <div id="guion" hidden>
-      <button class="boton-texto cliente-volver" id="volver" hidden>← Todos tus guiones</button>
-
-      <div class="cliente-layout">
-        <section class="cliente-hoja">
-          <div class="barra-guion">
-            <div class="barra-guion-estado">
-              <span class="estado-guion" id="estado-guion"></span>
-              <span class="guardado" id="guardado" aria-live="polite"></span>
-            </div>
-            <div class="barra-guion-acciones" id="acciones">
-              <button class="accion" id="editar">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>
-                <span>Editar guión</span>
-              </button>
-              <button class="accion" id="descartar" hidden>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                <span>Descartar</span>
-              </button>
-              <button class="accion accion-icono" id="cliente-teleprompter" title="Leer en modo teleprompter" aria-label="Teleprompter">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v12H3zM8 21h8M12 17v4M7 9h10M7 13h6"/></svg>
-              </button>
-              <button class="accion accion-icono" id="cliente-pdf" title="Descargar en PDF" aria-label="Descargar en PDF">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
-              </button>
-              <button class="accion accion-principal" id="aprobar">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-                <span>Aprobar</span>
-              </button>
-            </div>
-          </div>
-          <p class="cliente-nota editar" id="ayuda-edicion" hidden>Toca cualquier texto para cambiarlo. Tus cambios se envían a aifotos cuando pulses <b>Listo</b>; si te arrepientes, pulsa <b>Descartar</b>. También puedes seleccionar una frase para comentarla.</p>
-          <p class="cliente-nota aprobado" id="nota-aprobado" hidden>Aprobaste este guión, así que quedó cerrado para que no cambie por error. Si necesitas algún cambio, escríbele a aifotos por el chat.</p>
-          <p class="cliente-nota" id="pista-seleccion">Selecciona cualquier frase del guión para comentarla en el chat.</p>
-          <article class="lectura" id="lectura"></article>
-        </section>
-
-        <div class="telefono" id="telefono">
-          <div class="telefono-marco">
-            <span class="telefono-isla" aria-hidden="true"></span>
-            <div class="telefono-pantalla">
-              <div class="telefono-estado" aria-hidden="true">
-                <span class="telefono-hora">9:41</span>
-                <span class="telefono-iconos">
-                  <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
-                  <svg viewBox="0 0 26 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="#fff"/><rect x="2" y="2" width="15" height="8" rx="1.5"/><rect x="23" y="4" width="2" height="4" rx="1"/></svg>
-                </span>
-              </div>
-              <aside class="chat" id="chat" aria-label="Chat con aifotos">
-                <header class="chat-cabecera">
-                  <button class="chat-cerrar" id="chat-cerrar" aria-label="Minimizar el chat" title="Minimizar">
-                    <svg class="icono-escritorio" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-                    <svg class="icono-celular" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-                  </button>
-                  <span class="chat-avatar" aria-hidden="true">ai</span>
-                  <div class="chat-quien">
-                    <b>aifotos</b>
-                    <small>Escríbenos sobre este guión</small>
-                  </div>
-                </header>
-                <ul class="chat-mensajes" id="comentarios-lista"></ul>
-                <form class="chat-escribir" id="form-comentario">
-                  <textarea id="comentario-texto" rows="1" placeholder="Escribe un mensaje" aria-label="Mensaje"></textarea>
-                  <button class="chat-enviar" id="comentario-enviar" aria-label="Enviar mensaje">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
-                  </button>
-                </form>
-              </aside>
-            </div>
-          </div>
-        </div>
-        <button class="chat-abrir" id="chat-abrir" aria-label="Abrir el chat">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
-          <span class="chat-sin-leer" id="sin-leer" hidden></span>
-        </button>
+    <div class="vc-columna" id="guion" hidden>
+      <button class="vc-volver" id="volver" hidden>← Todos tus guiones</button>
+      <div class="vc-fila">
+        <img src="assets/logo-aifotos.png" alt="aifotos">
+        <span class="vc-guardado guardado" id="guardado" aria-live="polite"></span>
+        <span class="estado-guion" id="estado-guion"></span>
       </div>
+      <div class="vc-saludo">
+        <h1 id="saludo-titulo">Hola.</h1>
+        <p id="saludo-texto"></p>
+      </div>
+      <article class="lectura vc-hoja" id="lectura"></article>
+      <div class="vc-espacio"></div>
     </div>
   </main>
 
+  <div class="vc-barra" id="acciones" hidden>
+    <button class="vc-editar" id="editar"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="stroke-width:2.75"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg><span>Editar</span></button>
+    <button class="vc-icono" id="descartar" hidden aria-label="Descartar cambios" title="Descartar cambios"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="stroke-width:2.75"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <button class="vc-icono" id="cliente-teleprompter" aria-label="Teleprompter" title="Teleprompter"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="stroke-width:2.75"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+    <button class="vc-icono" id="cliente-pdf" aria-label="PDF" title="Descargar en PDF"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="stroke-width:2.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></button>
+    <button class="vc-icono" id="chat-abrir" aria-label="Chat" title="Chat con aifotos"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="stroke-width:2.75"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg><span class="vc-sin-leer" id="sin-leer" hidden></span></button>
+    <button class="vc-aprobar" id="aprobar"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="stroke-width:3"><path d="M20 6 9 17l-5-5"/></svg><span>Aprobar</span></button>
+  </div>
+
+  <aside class="chat-panel" id="chat" aria-label="Chat con aifotos">
+    <div class="chat-cabecera">
+      <button class="chat-cerrar" id="chat-cerrar" aria-label="Cerrar chat"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="stroke-width:2.75"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <span class="avatar chat-avatar chat-avatar-aifotos" aria-hidden="true">ai</span>
+      <div class="chat-quien">
+        <span class="chat-nombre">aifotos</span>
+        <span class="chat-sub">Escríbenos sobre este guión</span>
+      </div>
+    </div>
+    <ul class="chat-mensajes" id="comentarios-lista"></ul>
+    <div class="chat-pie">
+      <div class="chat-cita-pendiente" id="chat-cita" hidden><span id="chat-cita-texto"></span><button type="button" id="chat-cita-quitar" aria-label="Quitar cita">✕</button></div>
+      <form class="chat-escribir" id="form-comentario">
+        <textarea id="comentario-texto" rows="1" placeholder="Escríbele a aifotos…" aria-label="Mensaje"></textarea>
+        <button class="chat-enviar" id="comentario-enviar" aria-label="Enviar"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="stroke-width:2.75"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      </form>
+    </div>
+  </aside>
+
   <button class="burbuja-seleccion" id="burbuja" hidden>
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
+    <svg class="ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="stroke-width:2.75"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
     Comentar esta frase
   </button>
 
@@ -157,28 +117,15 @@
     </form>
   </dialog>
 
-  <dialog class="dialogo" id="dialogo-cita">
-    <form method="dialog" class="dialogo-contenido" id="form-cita">
-      <h2>Comentar esta frase</h2>
-      <blockquote class="cita" id="cita-texto"></blockquote>
-      <label class="campo">
-        <span>¿Qué te gustaría cambiar?</span>
-        <textarea id="cita-comentario" rows="4" required placeholder="Ej.: esta frase no me convence, ¿la puedes hacer más directa?"></textarea>
-      </label>
-      <div class="dialogo-acciones">
-        <button class="boton" value="cancelar" formnovalidate>Cancelar</button>
-        <button class="boton boton-principal" value="enviar">Enviar comentario</button>
-      </div>
-    </form>
-  </dialog>
 
-  <script src="js/config.js?v=202610161547"></script>
-  <script src="js/guion.js?v=202610161547"></script>
-  <script src="js/diferencias.js?v=202610161547"></script>
-  <script src="js/chat.js?v=202610161547"></script>
-  <script src="js/vista.js?v=202610161547"></script>
-  <script src="js/exportar.js?v=202610161547"></script>
-  <script src="js/teleprompter.js?v=202610161547"></script>
-  <script src="js/cliente.js?v=202610161547"></script>
+  <script src="js/ui.js?v=202610161621"></script>
+  <script src="js/config.js?v=202610161621"></script>
+  <script src="js/guion.js?v=202610161621"></script>
+  <script src="js/diferencias.js?v=202610161621"></script>
+  <script src="js/chat.js?v=202610161621"></script>
+  <script src="js/vista.js?v=202610161621"></script>
+  <script src="js/exportar.js?v=202610161621"></script>
+  <script src="js/teleprompter.js?v=202610161621"></script>
+  <script src="js/cliente.js?v=202610161621"></script>
 </body>
 </html>

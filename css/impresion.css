@@ -23,13 +23,13 @@
   .impresion-logo { height: 34px; }
   .impresion-datos { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 14px; font-size: 10pt; color: #555; }
 
-  .impresion .lectura { box-shadow: none !important; border: 0 !important; padding: 0 !important; background: none; }
+  .impresion .lectura { box-shadow: none !important; border: 0 !important; border-radius: 0; padding: 0 !important; background: none; gap: 10px; }
   .impresion .lectura-titulo { font-size: 22pt; }
-  .impresion .lectura-texto, .impresion .lectura-parrafo { font-size: 12pt; line-height: 1.6; }
-  .impresion .guion-cine { font-size: 11.5pt; max-width: none; }
-  .impresion .lectura-bloque, .impresion .cine-dialogo, .impresion .lectura-parrafo, .impresion .cine-accion { break-inside: avoid; }
-  .impresion .lectura-escena-titulo, .impresion .cine-escena { break-after: avoid; }
-  .impresion .lectura-pantalla, .impresion .lectura-escena-titulo, .impresion .lectura-voz { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .impresion .linea { font-size: 12pt; line-height: 1.6; padding: 2px 0; margin: 0; }
+  .impresion .linea-nota { font-size: 10.5pt; }
+  .impresion .linea, .impresion .lectura-pantalla { break-inside: avoid; }
+  .impresion .lectura-escena-titulo { break-after: avoid; }
+  .impresion .lectura-rotulo, .impresion .lectura-escena-titulo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .impresion mark { background: none; box-shadow: none; }
   .impresion-aprobado { margin: 8px 0 0; font-weight: 700; color: #2F5A52; }
 

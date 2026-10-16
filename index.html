@@ -8,19 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161547">
-  <link rel="stylesheet" href="css/impresion.css?v=202610161547">
-  <link rel="stylesheet" href="css/app.css?v=202610161547">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161621">
+  <link rel="stylesheet" href="css/impresion.css?v=202610161621">
+  <link rel="stylesheet" href="css/app.css?v=202610161621">
 </head>
 <body>
-  <header class="barra">
-    <button class="boton-icono solo-movil" id="abrir-lista" aria-label="Ver guiones">☰</button>
-    <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
-    <span class="barra-nombre">Guiones Creator</span>
-    <button class="boton-texto barra-avisos" id="abrir-avisos" hidden title="Avisos de Telegram y copia de seguridad">⚙️ Ajustes</button>
-    <button class="boton-texto barra-salir" id="salir" hidden>Cerrar sesión</button>
-  </header>
-
   <div class="acceso" id="acceso" hidden>
     <form class="acceso-caja" id="form-acceso">
       <img src="assets/logo-aifotos.png" alt="aifotos" class="acceso-logo">
@@ -38,18 +30,38 @@
 
   <div class="marco" id="marco" hidden>
     <aside class="lateral" id="lateral">
+      <div class="lateral-marca">
+        <img src="assets/logo-aifotos.png" alt="aifotos">
+        <span>Guiones</span>
+      </div>
       <div class="lateral-acciones">
-        <button class="boton boton-principal" id="nuevo">+ Nuevo guión</button>
-        <button class="boton" id="pegar">Pegar guión</button>
+        <button class="lateral-nuevo" id="nuevo"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>Nuevo guión</button>
+        <button class="lateral-pegar" id="pegar"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Pegar guión</button>
+      </div>
+      <div class="lateral-nav">
+        <button class="lateral-inicio" id="ir-inicio"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Inicio</span><span class="lateral-contador" id="contador-inicio">0</span></button>
       </div>
       <div class="lateral-cabecera">
-        <h2 class="lateral-titulo">Clientes</h2>
-        <button class="boton-texto" id="boton-nuevo-cliente">+ Cliente</button>
+        <span class="lateral-titulo">Clientes</span>
+        <button class="lateral-mas" id="boton-nuevo-cliente">+ Cliente</button>
       </div>
       <ul class="lista" id="lista"></ul>
+      <div class="lateral-pie">
+        <button class="lateral-ajustes" id="abrir-avisos"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Ajustes</button>
+        <span class="lateral-telegram" id="estado-telegram" title="Avisos de Telegram"><span class="punto"></span><span id="estado-telegram-texto">Telegram</span></span>
+      </div>
     </aside>
 
     <main class="principal" id="principal">
+      <div class="barra-movil">
+        <button class="movil-circulo" id="movil-volver" aria-label="Volver"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m12 19-7-7 7-7M19 12H5"/></svg></button>
+        <img class="movil-logo" id="movil-logo" src="assets/logo-aifotos.png" alt="aifotos">
+        <span class="movil-titulo" id="movil-titulo">Guiones</span>
+        <button class="movil-circulo movil-chat" id="movil-chat" aria-label="Chat"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg><span class="movil-sin-leer" id="movil-sin-leer" hidden></span></button>
+      </div>
+
+      <section class="inicio" id="inicio" hidden></section>
+
       <div class="vacio" id="vacio" hidden>
         <img src="assets/logo-aifotos.png" alt="" class="vacio-logo">
         <h1>Tu primer guión</h1>
@@ -112,114 +124,118 @@
 
       <div class="documento" id="documento" hidden>
         <div class="doc-contenido">
-        <div class="doc-cliente" id="doc-cliente">
-          <button class="doc-cliente-nombre" id="doc-cliente-nombre" title="Ver cliente y su link"></button>
-          <button class="boton-texto" id="doc-copiar">Copiar link del cliente</button>
-          <button class="boton-whatsapp-texto" id="doc-whatsapp" title="Abre WhatsApp con un mensaje y el link de este guion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm0 1.6a7.4 7.4 0 1 1-3.8 13.8l-.3-.2-2.7.7.7-2.6-.2-.3A7.4 7.4 0 0 1 12 4.6zm-3 3.6c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.3s1 2.7 1.2 2.9c.1.2 2 3.1 4.9 4.2 2.4.9 2.9.8 3.4.7.5 0 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4l-.5-.3-1.8-.9c-.3-.1-.5-.1-.7.2l-.8 1c-.2.2-.3.2-.6.1-.3-.2-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.3-.5v-.5l-.8-2c-.2-.5-.4-.5-.6-.5H9z"/></svg>Avisar por WhatsApp</button>
-        </div>
-        <div class="doc-avisos" id="doc-avisos"></div>
-        <div class="doc-barra">
-          <div class="pestanas" role="tablist">
-            <button class="pestana activa" data-modo="editar" role="tab">Editar</button>
-            <button class="pestana" data-modo="leer" role="tab">Vista del cliente</button>
-          </div>
-          <div class="doc-estado">
-            <span class="dato" id="dato-duracion" title="Calculado a 150 palabras por minuto">—</span>
-            <span class="dato" id="dato-palabras">—</span>
-            <span class="guardado" id="guardado"></span>
-          </div>
-          <div class="doc-acciones">
-            <label class="formato-selector" title="Tipo de guión">
-              <span>Formato</span>
-              <select id="formato"></select>
-            </label>
-            <button class="boton boton-herramienta" id="abrir-teleprompter" title="Leer el guion en modo teleprompter">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 5h18v12H3zM8 21h8M12 17v4M7 9h10M7 13h6"/></svg>
-              <span>Teleprompter</span>
-            </button>
-            <button class="boton boton-herramienta" id="exportar-pdf" title="Descargar el guion en PDF con tu marca">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
-              <span>PDF</span>
-            </button>
-            <button class="boton boton-herramienta" id="guardar-plantilla" title="Guardar este guion como plantilla para otros nuevos">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 3h11l3 3v15H5zM8 3v6h8V3M8 21v-7h8v7"/></svg>
-              <span>Plantilla</span>
-            </button>
-            <button class="boton boton-historial" id="abrir-historial" title="Ver y recuperar versiones anteriores">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg>
-              <span>Historial</span>
-            </button>
-            <button class="boton boton-borrar" id="borrar" title="Eliminar este guión">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
-              <span>Eliminar</span>
-            </button>
-          </div>
-        </div>
-
-        <div id="modo-editar">
-          <input class="titulo" id="titulo" placeholder="Título del guión" autocomplete="off">
-          <div class="personajes" id="personajes" hidden></div>
-          <textarea class="sencillo-texto" id="sencillo" hidden placeholder="Escribe el guión tal como lo leerá tu cliente…"></textarea>
-          <div class="bloques" id="bloques"></div>
-          <div class="agregar" id="agregar-caja">
-            <span class="agregar-texto">Añadir:</span>
-            <div class="agregar-botones" id="agregar"></div>
-          </div>
-          <p class="atajos" id="atajos"></p>
-        </div>
-
-        <div class="cambios-barra" id="cambios-barra" hidden>
-          <label class="interruptor">
-            <input type="checkbox" id="ver-cambios">
-            <span>Marcar los cambios del cliente</span>
-          </label>
-          <span class="leyenda"><del class="cambio-borrado">borró</del> <ins class="cambio-nuevo">añadió</ins></span>
-          <p class="cambios-info" id="cambios-info"></p>
-        </div>
-        <article class="lectura" id="modo-leer" hidden></article>
-        </div>
-
-        <div class="telefono" id="telefono">
-          <div class="telefono-marco">
-            <span class="telefono-isla" aria-hidden="true"></span>
-            <div class="telefono-pantalla">
-              <div class="telefono-estado" aria-hidden="true">
-                <span class="telefono-hora">9:41</span>
-                <span class="telefono-iconos">
-                  <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
-                  <svg viewBox="0 0 26 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="#fff"/><rect x="2" y="2" width="15" height="8" rx="1.5"/><rect x="23" y="4" width="2" height="4" rx="1"/></svg>
-                </span>
-              </div>
-              <aside class="chat" aria-label="Chat con el cliente">
-                <header class="chat-cabecera">
-                  <button class="chat-cerrar" id="chat-cerrar" aria-label="Minimizar el chat" title="Minimizar">
-                    <svg class="icono-escritorio" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-                    <svg class="icono-celular" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-                  </button>
-                  <span class="chat-avatar" aria-hidden="true" id="chat-inicial"></span>
-                  <div class="chat-quien">
-                    <b id="chat-nombre">Cliente</b>
-                    <small>Chat de este guión</small>
-                  </div>
-                  <button class="chat-whatsapp" id="chat-whatsapp" title="Avisar al cliente por WhatsApp" aria-label="Avisar al cliente por WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm0 1.6a7.4 7.4 0 1 1-3.8 13.8l-.3-.2-2.7.7.7-2.6-.2-.3A7.4 7.4 0 0 1 12 4.6zm-3 3.6c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.3s1 2.7 1.2 2.9c.1.2 2 3.1 4.9 4.2 2.4.9 2.9.8 3.4.7.5 0 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4l-.5-.3-1.8-.9c-.3-.1-.5-.1-.7.2l-.8 1c-.2.2-.3.2-.6.1-.3-.2-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.3-.5v-.5l-.8-2c-.2-.5-.4-.5-.6-.5H9z"/></svg></button>
-                </header>
-                <ul class="chat-mensajes" id="doc-comentarios"></ul>
-                <form class="chat-escribir" id="form-respuesta">
-                  <textarea id="respuesta-texto" rows="1" placeholder="Escribe un mensaje" aria-label="Mensaje al cliente"></textarea>
-                  <button class="chat-enviar" id="respuesta-enviar" aria-label="Enviar mensaje">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
-                  </button>
-                </form>
-              </aside>
+          <div class="doc-fila-acciones">
+            <div class="doc-migas">
+              <button class="doc-migas-cliente" id="doc-cliente-nombre"></button>
+              <span>/</span><span id="doc-migas-formato"></span>
+            </div>
+            <div class="doc-acciones">
+              <button class="pildora pildora-oscura" id="doc-chat"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Chat con <span id="doc-chat-nombre"></span><span class="pildora-contador" id="doc-chat-sin-leer" hidden></span></button>
+              <button class="pildora" id="abrir-teleprompter"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Teleprompter</button>
+              <button class="pildora" id="exportar-pdf"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>PDF</button>
+              <button class="pildora" id="abrir-historial"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></svg>Historial <span class="pildora-version" id="doc-version"></span></button>
+              <button class="pildora" id="guardar-plantilla" title="Guardar este guion como plantilla para otros nuevos"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></svg>Plantilla</button>
+              <button class="pildora pildora-peligro" id="borrar" aria-label="Eliminar guión" title="Eliminar guión"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>Eliminar</button>
+              <button class="pildora pildora-principal" id="doc-enviar"><span>Enviar a <span id="doc-enviar-nombre"></span></span><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
             </div>
           </div>
+
+          <div class="doc-cabecera">
+            <textarea class="titulo" id="titulo" rows="1" placeholder="Título del guión" aria-label="Título del guión"></textarea>
+            <div class="doc-meta">
+              <button class="estado-pildora" id="doc-estado"><span class="punto"></span><span id="doc-estado-texto"></span></button>
+              <label class="formato-pildora" title="Tipo de guión"><select id="formato" aria-label="Formato"></select></label>
+              <span class="doc-meta-duracion">≈ <b id="dato-duracion"></b> en voz alta</span>
+              <span>·</span>
+              <span id="dato-palabras"></span>
+              <span>·</span>
+              <span class="guardado" id="guardado"></span>
+            </div>
+          </div>
+
+          <div class="doc-vistas">
+            <div class="pestanas" role="tablist">
+              <button class="pestana activa" data-modo="editar" role="tab">Editar</button>
+              <button class="pestana" data-modo="leer" role="tab">Vista del cliente</button>
+            </div>
+            <button class="cambios-interruptor" id="ver-cambios" aria-pressed="false" hidden>
+              <span class="pista"><span class="perilla"></span></span><span>Marcar lo que cambió <span id="cambios-nombre"></span></span>
+            </button>
+          </div>
+          <p class="cambios-info" id="cambios-info"></p>
+
+          <div class="ritmo" id="ritmo" hidden>
+            <div class="ritmo-cabecera"><span id="ritmo-titulo">Ritmo</span><span class="ritmo-estado" id="ritmo-estado"></span></div>
+            <div class="ritmo-barra" id="ritmo-barra"></div>
+          </div>
+
+          <div class="doc-avisos" id="doc-avisos" hidden></div>
+
+          <div id="modo-editar">
+            <div class="personajes" id="personajes" hidden></div>
+            <textarea class="sencillo-texto" id="sencillo" hidden placeholder="Escribe el guión tal como lo leerá tu cliente…"></textarea>
+            <div class="bloques" id="bloques"></div>
+            <div class="agregar" id="agregar-caja">
+              <span class="agregar-texto">Añadir</span>
+              <div class="agregar-botones" id="agregar"></div>
+            </div>
+            <p class="atajos" id="atajos" hidden></p>
+          </div>
+
         </div>
-        <button class="chat-abrir" id="chat-abrir" aria-label="Abrir el chat con el cliente">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
-          <span class="chat-sin-leer" id="sin-leer" hidden></span>
-        </button>
+
+        <!-- Vista del cliente: lo mismo que ve tu cliente al abrir su link -->
+        <div class="vista-cliente" id="vista-cliente" hidden>
+          <div class="asi-lo-ve-caja">
+            <div class="asi-lo-ve"><span>Así lo ve <span id="asi-nombre"></span></span><button id="volver-editar">← Volver a editar</button></div>
+          </div>
+          <div class="vc-columna">
+            <div class="vc-fila">
+              <img src="assets/logo-aifotos.png" alt="aifotos">
+              <span class="estado-guion" id="vc-estado"></span>
+            </div>
+            <div class="vc-saludo">
+              <h1 id="vc-saludo-titulo"></h1>
+              <p id="vc-saludo-texto"></p>
+            </div>
+            <article class="lectura" id="modo-leer"></article>
+            <div class="vc-espacio"></div>
+          </div>
+          <div class="vc-barra">
+            <button class="vc-editar" id="vc-editar"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>Editar</button>
+            <button class="vc-icono" id="vc-teleprompter" aria-label="Teleprompter" title="Teleprompter"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+            <button class="vc-icono" id="vc-pdf" aria-label="PDF" title="Descargar en PDF"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></button>
+            <button class="vc-icono" id="vc-chat" aria-label="Chat" title="Chat"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></button>
+            <button class="vc-aprobar" id="vc-aprobar"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Aprobar</span></button>
+          </div>
+        </div>
+
       </div>
+      <nav class="nav-movil" id="nav-movil">
+        <button class="nav-movil-boton" id="movil-inicio"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Inicio</button>
+        <button class="nav-movil-nuevo" id="movil-nuevo" aria-label="Nuevo guión"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="stroke-width:3"><path d="M5 12h14M12 5v14"/></svg></button>
+        <button class="nav-movil-boton suave" id="movil-ajustes"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Ajustes</button>
+      </nav>
     </main>
+
+    <aside class="chat-panel" id="chat-panel" aria-label="Chat con el cliente">
+      <div class="chat-cabecera">
+        <button class="chat-cerrar" id="chat-cerrar" aria-label="Cerrar chat"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <span class="chat-avatar" id="chat-avatar" aria-hidden="true"></span>
+        <div class="chat-quien">
+          <span class="chat-nombre" id="chat-nombre">Cliente</span>
+          <span class="chat-sub">Chat de este guión</span>
+        </div>
+        <button class="chat-whatsapp" id="chat-whatsapp" title="Avisar al cliente por WhatsApp">WhatsApp</button>
+      </div>
+      <ul class="chat-mensajes" id="doc-comentarios"></ul>
+      <div class="chat-pie">
+        <form class="chat-escribir" id="form-respuesta">
+          <textarea id="respuesta-texto" rows="1" placeholder="Escríbele a tu cliente…" aria-label="Mensaje al cliente"></textarea>
+          <button class="chat-enviar" id="respuesta-enviar" aria-label="Enviar"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+        </form>
+      </div>
+    </aside>
   </div>
 
   <dialog class="dialogo dialogo-historial" id="dialogo-historial">
@@ -269,6 +285,7 @@
         <button class="boton" type="button" id="descargar-respaldo">Descargar copia de seguridad</button>
         <button class="boton boton-principal" value="cerrar">Cerrar</button>
       </div>
+      <button class="ajustes-salir" type="button" id="salir">Cerrar sesión</button>
     </form>
   </dialog>
 
@@ -339,16 +356,17 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161547"></script>
-  <script src="js/guion.js?v=202610161547"></script>
-  <script src="js/almacen.js?v=202610161547"></script>
-  <script src="js/sugerencias.js?v=202610161547"></script>
-  <script src="js/diferencias.js?v=202610161547"></script>
-  <script src="js/chat.js?v=202610161547"></script>
-  <script src="js/vista.js?v=202610161547"></script>
-  <script src="js/exportar.js?v=202610161547"></script>
-  <script src="js/teleprompter.js?v=202610161547"></script>
-  <script src="js/plantillas.js?v=202610161547"></script>
-  <script src="js/app.js?v=202610161547"></script>
+  <script src="js/ui.js?v=202610161621"></script>
+  <script src="js/config.js?v=202610161621"></script>
+  <script src="js/guion.js?v=202610161621"></script>
+  <script src="js/almacen.js?v=202610161621"></script>
+  <script src="js/sugerencias.js?v=202610161621"></script>
+  <script src="js/diferencias.js?v=202610161621"></script>
+  <script src="js/chat.js?v=202610161621"></script>
+  <script src="js/vista.js?v=202610161621"></script>
+  <script src="js/exportar.js?v=202610161621"></script>
+  <script src="js/teleprompter.js?v=202610161621"></script>
+  <script src="js/plantillas.js?v=202610161621"></script>
+  <script src="js/app.js?v=202610161621"></script>
 </body>
 </html>

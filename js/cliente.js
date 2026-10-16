@@ -68,14 +68,15 @@
 
   function mostrarLista() {
     $('guion').hidden = true;
-    if (window.innerWidth <= 900) chatFlotante.cerrar();
+    $('acciones').hidden = true;
+    cerrarChat();
     const lista = $('lista');
     lista.replaceChildren(el('h1', 'cliente-titulo', 'Tus guiones'));
     for (const g of guiones) {
       const tarjeta = el('a', 'tarjeta');
       tarjeta.href = `#${codigo}/${g.id}`;
       const titulo = el('span', 'tarjeta-titulo', g.titulo || 'Guión sin título');
-      titulo.append(el('span', `insignia ${g.aprobado ? 'aprobado' : 'pendiente'}`, g.aprobado ? 'Aprobado ✓' : 'Por revisar'));
+      titulo.append(el('span', `insignia ${g.aprobado ? 'aprobado' : 'pendiente'}`, g.aprobado ? 'Aprobado' : 'Por revisar'));
       tarjeta.append(
         titulo,
         el('span', 'lista-info', `${Guion.formatoDuracion(Guion.estadisticas(g.bloques).segundos)} · actualizado el ${fecha(g.actualizado)}`),
@@ -95,33 +96,88 @@
 
   function pintarGuion() {
     ocultarBurbuja();
-    Vista.render(actual, $('lectura'), { editable: editando, alCambiar: alEditar, citas: citasDe(actual) });
+    let aviso = null;
+    if (editando) {
+      aviso = el('p', 'lectura-aviso', 'Toca cualquier texto para cambiarlo. Tus cambios le llegan a aifotos cuando pulses ');
+      aviso.append(el('b', '', 'Listo'), '.');
+    }
+    Vista.render(actual, $('lectura'), { editable: editando, alCambiar: alEditar, citas: citasDe(actual), aviso });
+    if (actual.aprobado && !editando) $('lectura').prepend(el('span', 'lectura-sello', '¡Aprobado!'));
+    marcarLineaElegida();
     pintarEstado();
     pintarChat();
   }
 
+  // Estado desde el punto de vista del cliente, con los colores del prototipo.
+  function estadoCliente() {
+    if (actual.aprobado) return { etiqueta: 'Aprobado', ...UI.ESTADOS.aprobado };
+    if (actual.editado_por === 'cliente') return { ...UI.ESTADOS.editado, etiqueta: 'Enviaste cambios' };
+    return { ...UI.ESTADOS.esperando, etiqueta: 'Por revisar' };
+  }
+
   function pintarEstado() {
-    const estado = $('estado-guion');
-    estado.textContent = actual.aprobado ? `✓ Aprobaste este guión el ${fecha(actual.aprobado)}` : 'Pendiente de tu revisión';
-    estado.className = `estado-guion ${actual.aprobado ? 'aprobado' : 'pendiente'}`;
+    const e = estadoCliente();
+    const pildora = $('estado-guion');
+    pildora.textContent = e.etiqueta;
+    pildora.className = 'estado-guion';
+    pildora.style.setProperty('--estado-fondo', e.fondo);
+    pildora.style.setProperty('--estado-texto', e.texto);
+    pildora.style.setProperty('--estado-punto', e.punto);
+
+    $('saludo-titulo').textContent = `Hola, ${nombreCliente}.`;
+    const texto = $('saludo-texto');
+    texto.replaceChildren();
+    if (actual.aprobado) texto.append('Aprobaste la ', el('b', '', `v${actual.version}`), ' de tu guión. Si necesitas algún cambio, escríbele a aifotos por el chat.');
+    else texto.append('Te mandamos la ', el('b', '', `v${actual.version}`), ' de tu guión. Léelo con calma; si una frase no te cuadra, tócala y coméntala.');
+
     // Aprobado = bloqueado: ya no se edita (si hace falta un cambio, se pide por el chat).
     $('editar').hidden = !!actual.aprobado && !editando;
-    $('nota-aprobado').hidden = !actual.aprobado || editando;
-    $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar guión';
+    $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar';
     $('editar').classList.toggle('activa', editando);
     $('descartar').hidden = !editando;
-    $('cliente-pdf').hidden = editando;
-    $('cliente-teleprompter').hidden = editando;
-    $('aprobar').hidden = !!actual.aprobado || editando;
-    $('ayuda-edicion').hidden = !editando;
-    $('pista-seleccion').hidden = editando;
+    $('aprobar').hidden = editando;
+    $('aprobar').querySelector('span').textContent = actual.aprobado ? 'Aprobado' : 'Aprobar';
+    $('aprobar').classList.toggle('hecho', !!actual.aprobado);
   }
+
+  // ---------- Tocar una línea para comentarla ----------
+
+  let lineaElegida = null; // id del bloque tocado
+
+  function marcarLineaElegida() {
+    $('lectura').querySelectorAll('.linea.elegida').forEach((x) => x.classList.remove('elegida'));
+    $('lectura').querySelectorAll('.lectura-comentar').forEach((x) => x.remove());
+    if (!lineaElegida || editando) return;
+    const linea = $('lectura').querySelectorAll('.linea')[lineaElegida.indice];
+    if (!linea) return;
+    linea.classList.add('elegida');
+    const boton = el('button', 'lectura-comentar');
+    boton.append(UI.icono('chat', 14), 'Comentar esta frase');
+    boton.addEventListener('click', () => {
+      citarEnChat({ texto: lineaElegida.texto, bloque: lineaElegida.id });
+      lineaElegida = null;
+      marcarLineaElegida();
+    });
+    linea.after(boton);
+  }
+
+  $('lectura').addEventListener('click', (e) => {
+    if (editando || e.target.closest('mark[data-comentario]') || window.getSelection().toString().trim()) return;
+    const linea = e.target.closest('.linea[data-linea]');
+    if (!linea) return;
+    const indice = [...$('lectura').querySelectorAll('.linea')].indexOf(linea);
+    const mismo = lineaElegida && lineaElegida.id === linea.dataset.linea && lineaElegida.indice === indice;
+    lineaElegida = mismo ? null : { id: linea.dataset.linea, indice, texto: linea.querySelector('.linea-texto')?.textContent.trim() || '' };
+    marcarLineaElegida();
+  });
 
   async function mostrarGuion(g) {
     actual = g;
     editando = false;
     original = null;
+    lineaElegida = null;
     $('lista').hidden = true;
+    $('acciones').hidden = false;
     $('volver').hidden = guiones.length < 2;
     estadoEdicion('');
     pintarGuion();
@@ -286,15 +342,37 @@
   // ---------- Chat ----------
 
   const claveLeidos = () => `guiones-creator:leidos:${codigo}:${actual.id}`;
-  const chatVisible = () => chatFlotante.visible();
+  // El chat es un cajón que entra por la derecha (pantalla completa en el celular).
+  const chatVisible = () => document.body.classList.contains('chat-abierto');
+  function abrirChat() {
+    document.body.classList.add('chat-abierto');
+    if (actual) pintarChat({ alFinal: true });
+  }
+  function cerrarChat() { document.body.classList.remove('chat-abierto'); }
+  $('chat-abrir').addEventListener('click', abrirChat);
+  $('chat-cerrar').addEventListener('click', cerrarChat);
+
+  // Frase citada que acompaña al próximo mensaje (al tocar "Comentar esta frase").
+  let citaPendiente = null;
+  function citarEnChat(cita) {
+    citaPendiente = cita;
+    $('chat-cita-texto').textContent = `“${cita.texto}”`;
+    $('chat-cita').hidden = false;
+    abrirChat();
+    $('comentario-texto').focus();
+  }
+  function quitarCita() {
+    citaPendiente = null;
+    $('chat-cita').hidden = true;
+  }
+  $('chat-cita-quitar').addEventListener('click', quitarCita);
 
   function pintarChat(opciones = {}) {
     Chat.pintar($('comentarios-lista'), actual.comentarios || [], {
       yo: 'cliente',
-      nombres: { admin: 'aifotos', cliente: nombreCliente },
-      vacio: '¡Hola! Escríbenos aquí cualquier duda o cambio que quieras en el guión. También puedes seleccionar una frase del guión para comentarla.',
+      vacio: 'Aún no hay mensajes',
       alTocarCita: (c) => {
-        if (window.innerWidth <= 900) chatFlotante.cerrar(); // en el celular el chat tapa el guion
+        if (window.innerWidth < 1200) cerrarChat(); // el cajón tapa el guion
         irA($('lectura').querySelector(`mark[data-comentario="${c.id}"]`));
       },
       alFinal: opciones.alFinal,
@@ -319,15 +397,6 @@
     Chat.contarEnPestana(`${actual.titulo || 'Guión'} · aifotos`, nuevos);
   }
 
-  // El chat flota a un lado con forma de celular; en el celular va a pantalla completa.
-  const chatFlotante = Chat.flotante({
-    telefono: $('telefono'),
-    botonAbrir: $('chat-abrir'),
-    botonesCerrar: [$('chat-cerrar')],
-    clave: 'guiones-creator:chat-minimizado',
-    anchoAbierto: 1000,
-    alAbrir: () => { if (actual) pintarChat({ alFinal: true }); },
-  });
   const ajustarCampo = Chat.prepararCampo($('comentario-texto'), $('form-comentario'));
 
   $('form-comentario').addEventListener('submit', async (e) => {
@@ -335,11 +404,12 @@
     const texto = $('comentario-texto').value.trim();
     if (!texto) return $('comentario-texto').focus();
     $('comentario-enviar').disabled = true;
-    const enviado = await comentar({ texto });
+    const enviado = await comentar(citaPendiente ? { texto, cita: citaPendiente } : { texto });
     $('comentario-enviar').disabled = false;
     if (!enviado) return;
     $('comentario-texto').value = '';
     ajustarCampo();
+    if (citaPendiente) { quitarCita(); pintarGuion(); }
     pintarChat({ alFinal: true });
     $('comentario-texto').focus();
   });
@@ -368,7 +438,7 @@
   $('lectura').addEventListener('click', (e) => {
     const marca = e.target.closest('mark[data-comentario]');
     if (!marca) return;
-    if (!chatVisible()) chatFlotante.abrir();
+    if (!chatVisible()) abrirChat();
     irA($('comentarios-lista').querySelector(`[data-id="${marca.dataset.comentario}"] .burbuja`));
   });
 
@@ -470,28 +540,9 @@
     e.preventDefault();
     if (!seleccion) return;
     const elegido = seleccion;
-    $('cita-texto').textContent = `“${elegido.texto}”`;
-    $('cita-comentario').value = '';
-    $('dialogo-cita').returnValue = '';
-    $('dialogo-cita').dataset.texto = elegido.texto;
-    $('dialogo-cita').dataset.bloque = elegido.bloque;
     ocultarBurbuja();
-    $('dialogo-cita').showModal();
-    $('cita-comentario').focus();
-  });
-
-  $('dialogo-cita').addEventListener('close', async () => {
-    const dialogo = $('dialogo-cita');
-    if (dialogo.returnValue !== 'enviar') return;
-    const comentario = await comentar({
-      texto: $('cita-comentario').value.trim(),
-      cita: { texto: dialogo.dataset.texto, bloque: dialogo.dataset.bloque },
-    });
-    if (!comentario) return;
     window.getSelection().removeAllRanges();
-    pintarGuion();
-    pintarChat({ alFinal: true });
-    irA($('comentarios-lista').querySelector(`[data-id="${comentario.id}"] .burbuja`));
+    citarEnChat(elegido);
   });
 
   // ---------- Navegación ----------
@@ -561,8 +612,6 @@
       guiones = datos.guiones;
       nombreCliente = datos.cliente.nombre;
       tieneTelefono = datos.cliente.tieneTelefono !== false;
-      $('saludo').textContent = nombreCliente;
-      $('saludo').hidden = false;
       if (!guiones.length) { $('estado').textContent = 'Todavía no hay guiones aquí.'; return; }
       $('estado').hidden = true;
       await enrutar();
