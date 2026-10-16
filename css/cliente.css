@@ -4,7 +4,7 @@
   margin-left: auto;
   font-weight: 600;
   font-size: 14px;
-  background: #F3F0EA;
+  background: var(--neutro-200);
   border-radius: 999px;
   padding: 5px 14px;
   max-width: 55vw;
@@ -32,9 +32,19 @@
 
 .cliente-layout { max-width: 820px; }
 
-.estado-guion { font-weight: 600; border-radius: 999px; padding: 5px 14px; font-size: 14px; }
-.estado-guion.aprobado { background: #E8F1EE; color: #2F5A52; }
-.estado-guion.pendiente { background: #FFF3DD; color: #7A4E07; }
+.estado-guion {
+  --punto: #a19786;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  border-radius: var(--pildora);
+  font: 700 12.5px var(--fuente);
+  transform: rotate(-1.5deg);
+}
+.estado-guion::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--punto); }
+.estado-guion.aprobado { background: var(--salvia-200); color: var(--salvia-800); --punto: var(--salvia); }
+.estado-guion.pendiente { background: var(--ambar-200); color: var(--ambar-900); --punto: #e09a22; }
 
 .cliente-nota {
   margin: 0 0 12px;
@@ -43,17 +53,17 @@
 }
 .cliente-nota::before { content: "💡"; margin-right: 8px; }
 .cliente-nota.editar {
-  background: #FFF8EC;
-  border: 1px solid #F3DDB3;
+  background: var(--acento-100);
+  border: 1px solid var(--acento-200);
   color: var(--tinta);
   border-radius: 10px;
   padding: 10px 14px;
 }
 .cliente-nota.editar::before { content: "✏️"; }
 .cliente-nota.aprobado {
-  background: #E8F1EE;
-  border: 1px solid #CFE3DD;
-  color: #2F5A52;
+  background: var(--salvia-200);
+  border: 1px solid var(--salvia-200);
+  color: var(--salvia-800);
   border-radius: 10px;
   padding: 10px 14px;
 }
@@ -100,7 +110,7 @@
   flex-wrap: wrap;
   margin: 0 -8px 14px;
   padding: 10px 8px;
-  background: rgba(246, 244, 240, .95);
+  background: color-mix(in srgb, var(--fondo) 94%, transparent);
   backdrop-filter: blur(8px);
 }
 .barra-guion-estado { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -124,7 +134,7 @@
   transition: background .15s, border-color .15s, transform .1s;
 }
 .accion:active { transform: scale(.97); }
-.accion:hover { background: #F6F4F0; }
+.accion:hover { background: var(--neutro-200); }
 .accion svg, .burbuja-seleccion svg {
   width: 18px;
   height: 18px;
@@ -187,7 +197,7 @@
   height: 60px;
   margin: 0 auto;
   border-radius: 50%;
-  background: #25D366;
+  background: var(--salvia);
   color: #fff;
   box-shadow: 0 6px 18px rgba(37, 211, 102, .35);
 }
@@ -198,14 +208,14 @@
   border-radius: 10px;
   padding: 12px;
   font-size: 17px;
-  background: #FDFCFB;
+  background: var(--fondo);
 }
 .whatsapp-numero input { flex: 1; min-width: 0; }
-.whatsapp-numero input:focus, .whatsapp-numero select:focus { outline: 2px solid #25D366; outline-offset: 0; }
+.whatsapp-numero input:focus, .whatsapp-numero select:focus { outline: 2px solid var(--salvia); outline-offset: 0; }
 .dialogo-whatsapp .acceso-error:empty { display: none; }
 .dialogo-whatsapp .dialogo-acciones { justify-content: center; }
-.boton-guardar-whatsapp { background: #25D366; border-color: #25D366; color: #fff; }
-.boton-guardar-whatsapp:hover { background: #1FBE5B; border-color: #1FBE5B; }
+.boton-guardar-whatsapp { background: var(--salvia); border-color: var(--salvia); color: #fff; }
+.boton-guardar-whatsapp:hover { background: var(--salvia-700); border-color: var(--salvia-700); }
 
 .accion-icono { padding: 0; width: 46px; }
 .accion-icono[hidden] { display: none; }
