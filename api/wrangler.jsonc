@@ -1,0 +1,16 @@
+// API de Guiones Creator: Cloudflare Worker + base de datos D1 (SQLite).
+// Publicar:  npx wrangler deploy
+// Secretos (no van en el código): ADMIN_PASSWORD y SESSION_SECRET
+{
+  "name": "guiones-creator-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "guiones-creator",
+      "database_id": "838d56ae-0526-4287-bd1b-47ca8b12e978",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

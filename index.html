@@ -13,15 +13,34 @@
     <button class="boton-icono solo-movil" id="abrir-lista" aria-label="Ver guiones">☰</button>
     <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
     <span class="barra-nombre">Guiones Creator</span>
+    <button class="boton-texto barra-salir" id="salir" hidden>Cerrar sesión</button>
   </header>
 
-  <div class="marco">
+  <div class="acceso" id="acceso" hidden>
+    <form class="acceso-caja" id="form-acceso">
+      <img src="assets/logo-aifotos.png" alt="aifotos" class="acceso-logo">
+      <h1>Guiones Creator</h1>
+      <label class="campo">
+        <span>Contraseña</span>
+        <input type="password" id="acceso-clave" autocomplete="current-password" required>
+      </label>
+      <p class="acceso-error" id="acceso-error" role="alert"></p>
+      <button class="boton boton-principal" id="acceso-entrar">Entrar</button>
+    </form>
+  </div>
+
+  <div class="cargando" id="cargando" hidden>Cargando tus guiones…</div>
+
+  <div class="marco" id="marco" hidden>
     <aside class="lateral" id="lateral">
       <div class="lateral-acciones">
         <button class="boton boton-principal" id="nuevo">+ Nuevo guión</button>
         <button class="boton" id="pegar">Pegar guión</button>
       </div>
-      <h2 class="lateral-titulo">Mis guiones</h2>
+      <div class="lateral-cabecera">
+        <h2 class="lateral-titulo">Clientes</h2>
+        <button class="boton-texto" id="nuevo-cliente">+ Cliente</button>
+      </div>
       <ul class="lista" id="lista"></ul>
     </aside>
 
@@ -29,14 +48,53 @@
       <div class="vacio" id="vacio" hidden>
         <img src="assets/logo-aifotos.png" alt="" class="vacio-logo">
         <h1>Tu primer guión</h1>
-        <p>Escribe uno desde cero o pega un guión que ya tengas: la app lo ordena en escenas, voz en off, texto en pantalla y notas.</p>
+        <p>Escribe uno desde cero o pega uno que ya tengas. Cada guión va dentro de un cliente, y cada cliente tiene su propio link para ver sus guiones.</p>
         <div class="vacio-acciones">
           <button class="boton boton-principal" data-accion="nuevo">Escribir un guión</button>
           <button class="boton" data-accion="pegar">Pegar un guión</button>
         </div>
       </div>
 
+      <section class="panel-cliente" id="panel-cliente" hidden>
+        <p class="panel-etiqueta">Cliente</p>
+        <input class="titulo" id="cliente-nombre" aria-label="Nombre del cliente" autocomplete="off">
+
+        <div class="link-caja" id="link-caja">
+          <div class="link-cabecera">
+            <h2>Link para el cliente</h2>
+            <span class="estado-link" id="estado-link"></span>
+          </div>
+          <p class="link-ayuda" id="link-ayuda"></p>
+          <div class="link-fila">
+            <input class="link-url" id="link-url" readonly aria-label="Link del cliente">
+            <button class="boton boton-principal" id="link-copiar">Copiar link</button>
+            <button class="boton boton-whatsapp" id="link-whatsapp">WhatsApp</button>
+          </div>
+          <div class="link-acciones">
+            <button class="boton-texto" id="link-activar"></button>
+            <button class="boton-texto" id="link-regenerar">Generar un link nuevo</button>
+          </div>
+        </div>
+
+        <div class="panel-guiones">
+          <div class="panel-guiones-cabecera">
+            <h2>Guiones</h2>
+            <div class="vacio-acciones">
+              <button class="boton boton-principal" data-accion="nuevo">+ Nuevo guión</button>
+              <button class="boton" data-accion="pegar">Pegar guión</button>
+            </div>
+          </div>
+          <ul class="tarjetas" id="cliente-guiones"></ul>
+        </div>
+
+        <button class="boton-texto peligro" id="borrar-cliente">Eliminar cliente y todos sus guiones</button>
+      </section>
+
       <div class="documento" id="documento" hidden>
+        <div class="doc-cliente" id="doc-cliente">
+          <button class="doc-cliente-nombre" id="doc-cliente-nombre" title="Ver cliente y su link"></button>
+          <button class="boton-texto" id="doc-copiar">Copiar link del cliente</button>
+        </div>
         <div class="doc-barra">
           <div class="pestanas" role="tablist">
             <button class="pestana activa" data-modo="editar" role="tab">Editar</button>
@@ -81,8 +139,18 @@
       <h2>Nuevo guión</h2>
       <label class="campo">
         <span>Título</span>
-        <input id="nuevo-titulo" placeholder="Ej.: Reel lanzamiento Restaurante X" autocomplete="off">
+        <input id="nuevo-titulo" placeholder="Ej.: Reel lanzamiento" autocomplete="off">
       </label>
+      <div class="campo-doble">
+        <label class="campo">
+          <span>Cliente</span>
+          <select id="nuevo-cliente" class="selector-cliente"></select>
+        </label>
+        <label class="campo" id="nuevo-cliente-nuevo-caja">
+          <span>Nombre del cliente nuevo</span>
+          <input id="nuevo-cliente-nuevo" placeholder="Ej.: Restaurante X" autocomplete="off">
+        </label>
+      </div>
       <div class="campo">
         <span>¿Qué tipo de guión?</span>
         <div class="formatos" id="nuevo-formatos"></div>
@@ -100,8 +168,18 @@
       <p class="dialogo-ayuda">Pega el texto tal cual, venga de Word, Google Docs, WhatsApp o un PDF. La app reconoce escenas (INT./EXT., Escena 1, Hook, CTA…), personajes, voz en off, texto en pantalla y notas, y ordena cada cosa en su sitio.</p>
       <label class="campo">
         <span>Título</span>
-        <input id="pegar-titulo" placeholder="Ej.: Reel lanzamiento Restaurante X" autocomplete="off">
+        <input id="pegar-titulo" placeholder="Ej.: Reel lanzamiento" autocomplete="off">
       </label>
+      <div class="campo-doble">
+        <label class="campo">
+          <span>Cliente</span>
+          <select id="pegar-cliente" class="selector-cliente"></select>
+        </label>
+        <label class="campo" id="pegar-cliente-nuevo-caja">
+          <span>Nombre del cliente nuevo</span>
+          <input id="pegar-cliente-nuevo" placeholder="Ej.: Restaurante X" autocomplete="off">
+        </label>
+      </div>
       <label class="campo">
         <span>Guión</span>
         <textarea id="pegar-texto" rows="12" placeholder="Pega aquí tu guión…"></textarea>
@@ -118,6 +196,7 @@
     </form>
   </dialog>
 
+  <script src="js/config.js"></script>
   <script src="js/guion.js"></script>
   <script src="js/almacen.js"></script>
   <script src="js/sugerencias.js"></script>

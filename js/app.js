@@ -1,11 +1,13 @@
-// Pantalla principal: lista de guiones, editor por bloques (o texto libre en
-// el formato sencillo), sugerencias y vista del cliente.
+// Pantalla del administrador: acceso con contraseña, clientes con su link,
+// editor por bloques (o texto libre en el formato sencillo), sugerencias y
+// vista del cliente.
 (() => {
   const $ = (id) => document.getElementById(id);
 
   let actual = null;      // guión abierto
   let modo = 'editar';    // 'editar' | 'leer'
   let temporizador = null;
+  let clienteAbierto = null; // cliente cuyo panel está abierto
 
   const BLOQUES_INICIALES = {
     sencillo: () => [Guion.nuevoBloque('parrafo')],
@@ -91,66 +93,132 @@
   }
 
   // ---------- Guardado ----------
+  // Se guarda en la nube un momento después de dejar de escribir. Sin conexión
+  // reintenta solo; si el guion cambió en otro sitio, pregunta qué hacer.
 
-  function guardarYa() {
+  let guardando = false;
+  let pendiente = null;
+
+  function estadoGuardado(texto, error = false) {
+    $('guardado').textContent = texto;
+    $('guardado').classList.toggle('error', error);
+  }
+
+  async function guardarYa(guion = actual) {
     clearTimeout(temporizador);
     temporizador = null;
-    if (!actual) return;
-    const ok = Almacen.guardar(actual);
-    $('guardado').textContent = ok ? 'Guardado ✓' : 'No se pudo guardar';
-    $('guardado').classList.toggle('error', !ok);
-    pintarLista();
+    if (!guion) return;
+    if (guardando) { pendiente = guion; return; }
+    guardando = true;
+    estadoGuardado('Guardando…');
+    try {
+      await Almacen.guardar(guion);
+      if (guion === actual) estadoGuardado('Guardado ✓');
+      pintarLista();
+    } catch (e) {
+      if (e.estado === 409) resolverConflicto(guion, e.datos.guion);
+      else if (e.estado !== 401) {
+        estadoGuardado('Sin conexión · reintentando…', true);
+        temporizador = setTimeout(() => guardarYa(guion), 4000);
+      }
+    } finally {
+      guardando = false;
+      if (pendiente) { const siguiente = pendiente; pendiente = null; guardarYa(siguiente); }
+    }
   }
 
   function guardarLuego() {
-    $('guardado').textContent = 'Guardando…';
-    $('guardado').classList.remove('error');
+    estadoGuardado('Guardando…');
     clearTimeout(temporizador);
-    temporizador = setTimeout(guardarYa, 600);
+    const guion = actual;
+    temporizador = setTimeout(() => guardarYa(guion), 700);
   }
 
-  // ---------- Lista lateral ----------
+  function resolverConflicto(local, servidor) {
+    const usarNueva = confirm(
+      `"${servidor.titulo || 'Guión sin título'}" se cambió en otro sitio (quizá lo editó el cliente).\n\n` +
+      'Aceptar: ver la versión más nueva (se descartan tus últimos cambios).\n' +
+      'Cancelar: guardar tu versión encima de la otra.');
+    if (usarNueva) {
+      Almacen.reemplazar(servidor);
+      if (actual && actual.id === servidor.id) abrir(servidor.id);
+      avisar('Se cargó la versión más nueva');
+    } else {
+      local.version = servidor.version;
+      guardarYa(local);
+    }
+  }
+
+  function hayCambiosSinGuardar() {
+    return !!temporizador || guardando;
+  }
+
+  // ---------- Lista lateral: clientes y sus guiones ----------
+
+  function elemento(etiqueta, clase, texto) {
+    const nodo = document.createElement(etiqueta);
+    if (clase) nodo.className = clase;
+    if (texto != null) nodo.textContent = texto;
+    return nodo;
+  }
+
+  function infoGuion(g) {
+    const formato = Guion.FORMATOS[g.formato || 'video'].nombre;
+    return `${formato} · ${Guion.formatoDuracion(Guion.estadisticas(g.bloques).segundos)} · ${fecha(g.actualizado)}`;
+  }
 
   function pintarLista() {
-    const guiones = Almacen.listar();
     const lista = $('lista');
     lista.replaceChildren();
-    for (const g of guiones) {
-      const li = document.createElement('li');
-      const boton = document.createElement('button');
-      boton.className = 'lista-item' + (actual && g.id === actual.id ? ' activo' : '');
-      const titulo = document.createElement('span');
-      titulo.className = 'lista-titulo';
-      titulo.textContent = g.titulo || 'Guión sin título';
-      const info = document.createElement('span');
-      info.className = 'lista-info';
-      const formato = Guion.FORMATOS[g.formato || 'video'].nombre;
-      info.textContent = `${formato} · ${Guion.formatoDuracion(Guion.estadisticas(g.bloques).segundos)} · ${fecha(g.actualizado)}`;
-      boton.append(titulo, info);
-      boton.addEventListener('click', () => { abrir(g.id); cerrarLateral(); });
-      li.append(boton);
-      lista.append(li);
+    const clientes = Almacen.listarClientes();
+    for (const c of clientes) {
+      const guiones = Almacen.guionesDe(c.id);
+      const grupo = elemento('li', 'grupo');
+      const cabecera = elemento('button', 'grupo-cliente' + (clienteAbierto === c.id ? ' activo' : ''));
+      cabecera.append(elemento('span', 'grupo-nombre', c.nombre));
+      if (!c.activo) cabecera.append(elemento('small', 'grupo-apagado', 'link apagado'));
+      cabecera.append(elemento('small', 'grupo-cuenta', String(guiones.length)));
+      cabecera.addEventListener('click', () => { abrirCliente(c.id); cerrarLateral(); });
+      grupo.append(cabecera);
+
+      const sub = elemento('ul', 'lista-guiones');
+      for (const g of guiones) {
+        const li = elemento('li');
+        const boton = elemento('button', 'lista-item' + (actual && g.id === actual.id ? ' activo' : ''));
+        boton.append(elemento('span', 'lista-titulo', g.titulo || 'Guión sin título'), elemento('span', 'lista-info', infoGuion(g)));
+        boton.addEventListener('click', () => { abrir(g.id); cerrarLateral(); });
+        li.append(boton);
+        sub.append(li);
+      }
+      grupo.append(sub);
+      lista.append(grupo);
     }
-    if (!guiones.length) {
-      const li = document.createElement('li');
-      li.className = 'lista-vacia';
-      li.textContent = 'Aún no hay guiones.';
-      lista.append(li);
-    }
+    if (!clientes.length) lista.append(elemento('li', 'lista-vacia', 'Aún no hay clientes.'));
   }
 
   function fecha(ms) {
     return new Date(ms).toLocaleDateString('es', { day: 'numeric', month: 'short' });
   }
 
-  // ---------- Abrir / crear ----------
+  // ---------- Abrir un guion o un cliente ----------
 
-  // Guiones de la Fase 1 no tenían formato; el formato sencillo es un único texto.
+  function recordar(valor) {
+    try { localStorage.setItem('guiones-creator:ultimo', valor); } catch {}
+  }
+
+  function mostrar(vista) {
+    $('vacio').hidden = vista !== 'vacio';
+    $('documento').hidden = vista !== 'documento';
+    $('panel-cliente').hidden = vista !== 'cliente';
+  }
+
+  // Guiones antiguos sin formato; el formato sencillo es un único texto.
   function normalizar(g) {
     if (!g.formato) g.formato = 'video';
     if (g.formato === 'sencillo' && (g.bloques.length !== 1 || g.bloques[0].tipo !== 'parrafo')) {
       g.bloques = Guion.convertir(g.bloques, 'sencillo');
     }
+    if (!g.bloques.length) g.bloques = BLOQUES_INICIALES[g.formato]();
     return g;
   }
 
@@ -158,31 +226,97 @@
     if (temporizador) guardarYa();
     Menu.ocultar();
     actual = id ? Almacen.obtener(id) : null;
+    clienteAbierto = null;
+    mostrar(actual ? 'documento' : 'vacio');
+    estadoGuardado('');
     if (actual) {
       normalizar(actual);
-      try { localStorage.setItem('guiones-creator:ultimo', actual.id); } catch {}
-    }
-    $('vacio').hidden = !!actual;
-    $('documento').hidden = !actual;
-    $('guardado').textContent = '';
-    if (actual) {
+      recordar(`g:${actual.id}`);
       $('titulo').value = actual.titulo;
+      pintarCabeceraCliente();
       pintarEditor();
       cambiarModo(modo);
     }
     pintarLista();
   }
 
-  function crear(titulo, formato, bloques) {
-    try { localStorage.setItem('guiones-creator:formato', formato); } catch {}
-    const g = Almacen.crear(titulo, bloques || BLOQUES_INICIALES[formato](), formato);
-    modo = 'editar';
-    abrir(g.id);
-    return g;
+  function pintarCabeceraCliente() {
+    const c = Almacen.obtenerCliente(actual.cliente_id);
+    $('doc-cliente-nombre').textContent = c ? c.nombre : '';
+    $('doc-copiar').hidden = !c || !c.activo;
   }
 
-  function formatoPreferido() {
-    try { return localStorage.getItem('guiones-creator:formato') || 'video'; } catch { return 'video'; }
+  // ---------- Panel del cliente y su link ----------
+
+  function abrirCliente(id) {
+    if (temporizador) guardarYa();
+    Menu.ocultar();
+    actual = null;
+    clienteAbierto = id;
+    recordar(`c:${id}`);
+    mostrar('cliente');
+    pintarPanelCliente();
+    pintarLista();
+  }
+
+  function pintarPanelCliente() {
+    const c = Almacen.obtenerCliente(clienteAbierto);
+    if (!c) return abrir(null);
+    $('cliente-nombre').value = c.nombre;
+    $('link-url').value = Almacen.linkDe(c);
+    $('link-caja').classList.toggle('apagado', !c.activo);
+    $('estado-link').textContent = c.activo ? 'Activo' : 'Desactivado';
+    $('estado-link').className = `estado-link ${c.activo ? 'activo' : 'inactivo'}`;
+    $('link-ayuda').textContent = c.activo
+      ? `Con este link, ${c.nombre} ve todos sus guiones. No necesita cuenta ni contraseña.`
+      : 'Este link está desactivado: quien lo abra no verá nada. Actívalo otra vez o genera uno nuevo.';
+    $('link-copiar').disabled = !c.activo;
+    $('link-whatsapp').disabled = !c.activo;
+    $('link-activar').textContent = c.activo ? 'Desactivar link' : 'Activar link';
+
+    const ul = $('cliente-guiones');
+    ul.replaceChildren();
+    for (const g of Almacen.guionesDe(c.id)) {
+      const li = elemento('li');
+      const tarjeta = elemento('button', 'tarjeta');
+      tarjeta.append(elemento('span', 'tarjeta-titulo', g.titulo || 'Guión sin título'), elemento('span', 'lista-info', infoGuion(g)));
+      tarjeta.addEventListener('click', () => abrir(g.id));
+      li.append(tarjeta);
+      ul.append(li);
+    }
+    if (!ul.children.length) ul.append(elemento('li', 'lista-vacia', 'Este cliente aún no tiene guiones.'));
+  }
+
+  // Ejecuta una acción contra la nube y avisa si falla.
+  async function intentar(accion, queFallo) {
+    try {
+      return await accion();
+    } catch (e) {
+      if (e.estado !== 401) alert(`${queFallo}.\n${e.message}`);
+      return null;
+    }
+  }
+
+  async function copiarLink(cliente) {
+    const link = Almacen.linkDe(cliente);
+    try {
+      await navigator.clipboard.writeText(link);
+      avisar('Link copiado. Pégalo en un mensaje para tu cliente.');
+    } catch {
+      prompt('Copia este link:', link);
+    }
+  }
+
+  function enviarWhatsApp(cliente) {
+    const texto = `Hola, aquí puedes ver y revisar tus guiones: ${Almacen.linkDe(cliente)}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+  }
+
+  async function nuevoCliente() {
+    const nombre = (prompt('Nombre del cliente:') || '').trim();
+    if (!nombre) return;
+    const c = await intentar(() => Almacen.crearCliente(nombre), 'No se pudo crear el cliente');
+    if (c) { abrirCliente(c.id); avisar('Cliente creado con su link'); }
   }
 
   // ---------- Editor ----------
@@ -614,6 +748,47 @@
     else document.querySelectorAll('#modo-editar textarea').forEach(ajustarAltura);
   }
 
+  // ---------- Elegir cliente en los diálogos ----------
+
+  function llenarClientes(dialogo) {
+    const select = $(`${dialogo}-cliente`);
+    select.replaceChildren();
+    for (const c of Almacen.listarClientes()) select.append(new Option(c.nombre, c.id));
+    select.append(new Option('+ Cliente nuevo…', '__nuevo'));
+    const preferido = clienteAbierto || actual?.cliente_id;
+    select.value = preferido && Almacen.obtenerCliente(preferido) ? preferido : (select.options[0].value);
+    $(`${dialogo}-cliente-nuevo`).value = '';
+    alternarClienteNuevo(dialogo);
+  }
+
+  function alternarClienteNuevo(dialogo) {
+    const nuevo = $(`${dialogo}-cliente`).value === '__nuevo';
+    $(`${dialogo}-cliente-nuevo-caja`).hidden = !nuevo;
+    $(`${dialogo}-cliente-nuevo`).required = nuevo; // el formulario no se cierra sin nombre
+  }
+
+  async function clienteDestino(dialogo) {
+    const valor = $(`${dialogo}-cliente`).value;
+    if (valor !== '__nuevo') return valor;
+    const c = await Almacen.crearCliente($(`${dialogo}-cliente-nuevo`).value.trim());
+    return c.id;
+  }
+
+  async function crear(dialogo, titulo, formato, bloques) {
+    return intentar(async () => {
+      const clienteId = await clienteDestino(dialogo);
+      try { localStorage.setItem('guiones-creator:formato', formato); } catch {}
+      const g = await Almacen.crear(clienteId, titulo, bloques || BLOQUES_INICIALES[formato](), formato);
+      modo = 'editar';
+      abrir(g.id);
+      return g;
+    }, 'No se pudo crear el guión');
+  }
+
+  function formatoPreferido() {
+    try { return localStorage.getItem('guiones-creator:formato') || 'video'; } catch { return 'video'; }
+  }
+
   // ---------- Nuevo guión ----------
 
   function abrirNuevo() {
@@ -621,31 +796,27 @@
     const preferido = formatoPreferido();
     caja.replaceChildren();
     for (const [clave, f] of Object.entries(Guion.FORMATOS)) {
-      const label = document.createElement('label');
-      label.className = 'formato-opcion';
+      const label = elemento('label', 'formato-opcion');
       const radio = document.createElement('input');
       radio.type = 'radio';
       radio.name = 'nuevo-formato';
       radio.value = clave;
       radio.checked = clave === preferido;
-      const nombre = document.createElement('b');
-      nombre.textContent = f.nombre;
-      const desc = document.createElement('span');
-      desc.textContent = f.descripcion;
-      label.append(radio, nombre, desc);
+      label.append(radio, elemento('b', '', f.nombre), elemento('span', '', f.descripcion));
       caja.append(label);
     }
     $('nuevo-titulo').value = '';
+    llenarClientes('nuevo');
     $('dialogo-nuevo').returnValue = '';
     $('dialogo-nuevo').showModal();
     $('nuevo-titulo').focus();
   }
 
-  $('dialogo-nuevo').addEventListener('close', () => {
+  $('dialogo-nuevo').addEventListener('close', async () => {
     if ($('dialogo-nuevo').returnValue !== 'crear') return;
     const formato = document.querySelector('input[name="nuevo-formato"]:checked')?.value || 'video';
-    crear($('nuevo-titulo').value.trim(), formato);
-    $(formato === 'sencillo' ? 'sencillo' : 'titulo').focus();
+    const g = await crear('nuevo', $('nuevo-titulo').value.trim(), formato);
+    if (g) $(formato === 'sencillo' ? 'sencillo' : 'titulo').focus();
   });
 
   // ---------- Pegar un guión ----------
@@ -659,6 +830,7 @@
     $('pegar-titulo').value = '';
     $('pegar-texto').value = '';
     $('pegar-formato').value = 'auto';
+    llenarClientes('pegar');
     resumenPegado();
     $('dialogo-pegar').returnValue = '';  // si se cierra con Esc no debe repetir el último "Crear"
     $('dialogo-pegar').showModal();
@@ -688,24 +860,129 @@
   $('dialogo-pegar').addEventListener('close', () => {
     if ($('dialogo-pegar').returnValue !== 'crear') return;
     const formato = formatoPegado();
-    crear($('pegar-titulo').value.trim(), formato, Guion.desdeTexto($('pegar-texto').value, formato));
+    crear('pegar', $('pegar-titulo').value.trim(), formato, Guion.desdeTexto($('pegar-texto').value, formato));
   });
 
   // ---------- Eliminar ----------
 
-  $('borrar').addEventListener('click', () => {
+  $('borrar').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar "${actual.titulo || 'Guión sin título'}"? No se puede deshacer.`)) return;
     clearTimeout(temporizador);
     temporizador = null;
-    Almacen.borrar(actual.id);
-    const siguiente = Almacen.listar()[0];
-    abrir(siguiente ? siguiente.id : null);
+    const { id, cliente_id: clienteId } = actual;
+    if ((await intentar(() => Almacen.borrar(id), 'No se pudo eliminar el guión')) === null) return;
+    abrirCliente(clienteId);
     avisar('Guión eliminado');
   });
+
+  $('borrar-cliente').addEventListener('click', async () => {
+    const c = Almacen.obtenerCliente(clienteAbierto);
+    const n = Almacen.guionesDe(c.id).length;
+    const aviso = n ? ` y sus ${n} guion${n === 1 ? '' : 'es'}` : '';
+    if (!confirm(`¿Eliminar a "${c.nombre}"${aviso}? Su link dejará de funcionar. No se puede deshacer.`)) return;
+    if ((await intentar(() => Almacen.borrarCliente(c.id), 'No se pudo eliminar el cliente')) === null) return;
+    const siguiente = Almacen.listarClientes()[0];
+    if (siguiente) abrirCliente(siguiente.id); else abrir(null);
+    avisar('Cliente eliminado');
+  });
+
+  // ---------- Acciones del link ----------
+
+  const clientePanel = () => Almacen.obtenerCliente(clienteAbierto);
+
+  $('link-copiar').addEventListener('click', () => copiarLink(clientePanel()));
+  $('link-url').addEventListener('focus', () => $('link-url').select());
+  $('link-whatsapp').addEventListener('click', () => enviarWhatsApp(clientePanel()));
+  $('doc-copiar').addEventListener('click', () => copiarLink(Almacen.obtenerCliente(actual.cliente_id)));
+  $('doc-cliente-nombre').addEventListener('click', () => abrirCliente(actual.cliente_id));
+
+  $('link-activar').addEventListener('click', async () => {
+    const c = clientePanel();
+    if (c.activo && !confirm(`Mientras esté desactivado, ${c.nombre} no podrá ver sus guiones. ¿Desactivar el link?`)) return;
+    const hecho = await intentar(() => Almacen.editarCliente(c.id, { activo: !c.activo }), 'No se pudo cambiar el link');
+    if (hecho) { pintarPanelCliente(); pintarLista(); avisar(hecho.activo ? 'Link activado' : 'Link desactivado'); }
+  });
+
+  $('link-regenerar').addEventListener('click', async () => {
+    const c = clientePanel();
+    if (!confirm(`Se creará un link nuevo para ${c.nombre} y el actual dejará de funcionar. ¿Continuar?`)) return;
+    const hecho = await intentar(() => Almacen.regenerarLink(c.id), 'No se pudo generar el link');
+    if (hecho) { pintarPanelCliente(); pintarLista(); avisar('Link nuevo listo. Recuerda enviárselo.'); }
+  });
+
+  $('cliente-nombre').addEventListener('change', async () => {
+    const c = clientePanel();
+    const nombre = $('cliente-nombre').value.trim();
+    if (!nombre || nombre === c.nombre) { $('cliente-nombre').value = c.nombre; return; }
+    const hecho = await intentar(() => Almacen.editarCliente(c.id, { nombre }), 'No se pudo cambiar el nombre');
+    if (hecho) { pintarPanelCliente(); pintarLista(); }
+  });
+  $('cliente-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('cliente-nombre').blur(); });
 
   // ---------- Móvil ----------
 
   function cerrarLateral() { $('lateral').classList.remove('abierto'); }
+
+  // ---------- Entrar ----------
+
+  function mostrarAcceso(mensaje = '') {
+    $('marco').hidden = true;
+    $('salir').hidden = true;
+    $('cargando').hidden = true;
+    $('acceso').hidden = false;
+    $('acceso-error').textContent = mensaje;
+    $('acceso-clave').value = '';
+    $('acceso-clave').focus();
+  }
+
+  async function iniciar() {
+    if (!Almacen.haySesion()) return mostrarAcceso();
+    $('acceso').hidden = true;
+    $('cargando').textContent = 'Cargando tus guiones…';
+    $('cargando').hidden = false;
+    try {
+      await Almacen.cargar();
+    } catch (e) {
+      if (e.estado === 401) return;  // alCaducarSesion ya mostró la pantalla de acceso
+      $('cargando').textContent = `No se pudo conectar (${e.message}). Revisa tu internet y recarga la página.`;
+      return;
+    }
+    $('cargando').hidden = true;
+    $('marco').hidden = false;
+    $('salir').hidden = false;
+
+    let ultimo = null;
+    try { ultimo = localStorage.getItem('guiones-creator:ultimo'); } catch {}
+    const [tipo, id] = (ultimo || '').split(':');
+    if (tipo === 'g' && Almacen.obtener(id)) abrir(id);
+    else if (tipo === 'c' && Almacen.obtenerCliente(id)) abrirCliente(id);
+    else if (Almacen.listarClientes().length) abrirCliente(Almacen.listarClientes()[0].id);
+    else abrir(null);
+  }
+
+  $('form-acceso').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('acceso-entrar').disabled = true;
+    $('acceso-error').textContent = '';
+    try {
+      await Almacen.entrar($('acceso-clave').value);
+      await iniciar();
+    } catch (err) {
+      $('acceso-error').textContent = err.message;
+    } finally {
+      $('acceso-entrar').disabled = false;
+    }
+  });
+
+  $('salir').addEventListener('click', async () => {
+    if (hayCambiosSinGuardar()) await guardarYa();
+    Almacen.cerrarSesion();
+    actual = null;
+    clienteAbierto = null;
+    mostrarAcceso();
+  });
+
+  Almacen.alCaducarSesion(() => mostrarAcceso('Tu sesión terminó. Vuelve a entrar.'));
 
   // ---------- Arranque ----------
 
@@ -713,6 +990,8 @@
   llenarSelectorFormato($('pegar-formato'), true);
   $('nuevo').addEventListener('click', abrirNuevo);
   $('pegar').addEventListener('click', abrirPegar);
+  $('nuevo-cliente').addEventListener('click', nuevoCliente);
+  ['nuevo', 'pegar'].forEach((d) => $(`${d}-cliente`).addEventListener('change', () => alternarClienteNuevo(d)));
   document.querySelectorAll('[data-accion]').forEach((b) =>
     b.addEventListener('click', () => (b.dataset.accion === 'nuevo' ? abrirNuevo() : abrirPegar())));
   document.querySelectorAll('.pestana').forEach((p) => p.addEventListener('click', () => cambiarModo(p.dataset.modo)));
@@ -721,10 +1000,12 @@
   $('pegar-texto').addEventListener('input', resumenPegado);
   $('pegar-formato').addEventListener('change', resumenPegado);
   window.addEventListener('resize', () => Menu.ocultar());
-  window.addEventListener('beforeunload', () => { if (temporizador) guardarYa(); });
+  window.addEventListener('beforeunload', (e) => {
+    if (!hayCambiosSinGuardar()) return;
+    guardarYa();
+    e.preventDefault();
+    e.returnValue = '';
+  });
 
-  let ultimo = null;
-  try { ultimo = localStorage.getItem('guiones-creator:ultimo'); } catch {}
-  const inicial = (ultimo && Almacen.obtener(ultimo)) || Almacen.listar()[0];
-  abrir(inicial ? inicial.id : null);
+  iniciar();
 })();

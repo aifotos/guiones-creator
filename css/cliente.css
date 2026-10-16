@@ -1,0 +1,12 @@
+/* Página del cliente: solo lectura, pensada primero para el celular. */
+
+.cliente-principal { max-width: 800px; margin: 0 auto; padding: 32px 24px 80px; }
+.cliente-estado { text-align: center; color: var(--tinta-suave); padding: 15vh 0; font-size: 17px; }
+.cliente-titulo { font-size: 28px; margin: 0 0 16px; }
+.cliente-lista { display: grid; gap: 10px; }
+.cliente-lista .tarjeta { text-decoration: none; color: inherit; }
+.cliente-volver { margin: 0 0 12px -6px; }
+
+@media (max-width: 760px) {
+  .cliente-principal { padding: 20px 12px 64px; }
+}

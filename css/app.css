@@ -100,13 +100,51 @@ button, input, select, textarea { font: inherit; color: inherit; }
   overflow-y: auto;
 }
 .lateral-acciones { display: grid; gap: 8px; }
+.lateral-cabecera { display: flex; justify-content: space-between; align-items: baseline; margin: 28px 4px 8px; }
 .lateral-titulo {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--tinta-suave);
-  margin: 28px 4px 8px;
+  margin: 0;
 }
+.boton-texto {
+  border: 0;
+  background: transparent;
+  color: var(--tinta);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: #D3CDC3;
+  text-underline-offset: 3px;
+}
+.boton-texto:hover { background: #F0EDE8; text-decoration-color: currentColor; }
+.boton-texto.peligro { color: var(--aifotos-granate); }
+
+.grupo { margin-bottom: 6px; }
+.grupo-cliente {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 700;
+}
+.grupo-cliente:hover { background: #F0EDE8; }
+.grupo-cliente.activo { background: var(--papel); box-shadow: var(--sombra); }
+.grupo-nombre { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grupo-cuenta { font-size: 12px; color: var(--tinta-suave); background: #EFECE6; border-radius: 999px; padding: 0 7px; }
+.grupo-apagado { font-size: 11px; color: var(--aifotos-granate); font-weight: 600; }
+.lista-guiones { list-style: none; margin: 0 0 0 10px; padding: 0 0 0 8px; border-left: 2px solid #ECE8E1; display: grid; gap: 1px; }
+.lista-guiones .lista-item { padding: 7px 10px; }
 .lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .lista-item {
   width: 100%;
@@ -126,7 +164,97 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .lista-vacia { padding: 8px 12px; color: var(--tinta-suave); font-size: 14px; }
 
 .principal { flex: 1; min-width: 0; padding: 32px 24px 80px; }
-.documento, .vacio { max-width: 760px; margin: 0 auto; }
+.documento, .vacio, .panel-cliente { max-width: 760px; margin: 0 auto; }
+
+/* ---------- Acceso ---------- */
+
+.acceso { display: grid; place-items: center; min-height: calc(100vh - 56px); padding: 24px 16px; }
+.acceso-caja {
+  width: min(380px, 100%);
+  background: var(--papel);
+  border-radius: 16px;
+  box-shadow: var(--sombra);
+  padding: 32px 28px;
+  display: grid;
+  gap: 16px;
+  text-align: center;
+}
+.acceso-caja .campo { text-align: left; }
+.acceso-logo { height: 44px; margin: 0 auto; }
+.acceso-caja h1 { margin: 0; font-size: 22px; }
+.acceso-error { margin: 0; color: var(--aifotos-granate); font-size: 14px; min-height: 1em; }
+.cargando { text-align: center; padding: 20vh 16px; color: var(--tinta-suave); }
+.barra-salir { margin-left: auto; color: var(--tinta-suave); }
+
+/* ---------- Panel del cliente ---------- */
+
+.panel-etiqueta { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--tinta-suave); }
+.link-caja {
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-left: 4px solid var(--acento);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
+  padding: 20px;
+  margin-bottom: 32px;
+}
+.link-caja.apagado { border-left-color: var(--c-nota); }
+.link-cabecera { display: flex; align-items: center; gap: 10px; }
+.link-cabecera h2 { margin: 0; font-size: 18px; }
+.estado-link { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.estado-link.activo { background: #E8F1EE; color: #3E6A62; }
+.estado-link.inactivo { background: #FBEDED; color: var(--aifotos-granate); }
+.link-ayuda { color: var(--tinta-suave); font-size: 14px; margin: 6px 0 14px; }
+.link-fila { display: flex; gap: 8px; flex-wrap: wrap; }
+.link-url {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #FBFAF8;
+  font: 14px var(--mono);
+  color: var(--tinta-suave);
+}
+.link-caja.apagado .link-url { text-decoration: line-through; }
+.boton-whatsapp { background: #25D366; border-color: #25D366; color: #0B3D1F; }
+.boton-whatsapp:hover { background: #1FBE5B; border-color: #1FBE5B; }
+.boton:disabled { opacity: .4; cursor: default; }
+.link-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.panel-guiones-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.panel-guiones-cabecera h2 { margin: 0; font-size: 18px; }
+.tarjetas { list-style: none; margin: 0 0 32px; padding: 0; display: grid; gap: 8px; }
+.tarjeta {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  box-shadow: var(--sombra);
+}
+.tarjeta:hover { border-color: #CFC9BF; }
+.tarjeta-titulo { font-weight: 600; font-size: 16px; }
+
+/* ---------- Cliente del guion abierto ---------- */
+
+.doc-cliente { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 14px; }
+.doc-cliente-nombre {
+  border: 0;
+  background: #EFECE6;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.doc-cliente-nombre::before { content: "Cliente: "; font-weight: 400; color: var(--tinta-suave); }
+.doc-cliente-nombre:hover { background: #E6E1D8; }
+
+.campo-doble { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.campo-doble [hidden] { display: none !important; }
 
 /* ---------- Estado vacío ---------- */
 
@@ -581,6 +709,9 @@ kbd {
   .bloque-acciones { opacity: 1; }
   .bloque-info { display: none; }
   .bloque-acciones { margin-left: auto; }
+  .campo-doble { grid-template-columns: 1fr; }
+  .link-fila .boton { flex: 1; }
+  .link-url { flex-basis: 100%; }
   .formato-selector span, .boton-borrar span { display: none; }
   .sencillo-texto { padding: 20px; font-size: 17px; }
   [data-formato="cine"] .bloque-personaje { width: 100%; }

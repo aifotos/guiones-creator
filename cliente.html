@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Tus guiones · aifotos</title>
+  <link rel="icon" href="assets/logo-aifotos.png">
+  <link rel="stylesheet" href="assets/marca.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/cliente.css">
+</head>
+<body class="pagina-cliente">
+  <header class="barra">
+    <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
+    <span class="barra-nombre" id="saludo">Guiones</span>
+  </header>
+
+  <main class="cliente-principal">
+    <p class="cliente-estado" id="estado">Cargando tus guiones…</p>
+
+    <nav class="cliente-lista" id="lista" hidden aria-label="Tus guiones"></nav>
+
+    <div id="guion" hidden>
+      <button class="boton-texto cliente-volver" id="volver" hidden>← Todos tus guiones</button>
+      <article class="lectura" id="lectura"></article>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/guion.js"></script>
+  <script src="js/vista.js"></script>
+  <script src="js/cliente.js"></script>
+</body>
+</html>
