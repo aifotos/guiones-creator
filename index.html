@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guiones Creator · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161122">
-  <link rel="stylesheet" href="css/app.css?v=202610161122">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161135">
+  <link rel="stylesheet" href="css/app.css?v=202610161135">
 </head>
 <body>
   <header class="barra">
@@ -141,12 +141,22 @@
         <article class="lectura" id="modo-leer" hidden></article>
 
         <section class="doc-comentarios">
-          <h2>Comentarios del cliente</h2>
-          <ul class="comentarios-lista" id="doc-comentarios"></ul>
-          <form class="comentario-form" id="form-respuesta">
-            <textarea id="respuesta-texto" rows="2" placeholder="Responde al cliente… (lo verá en su link)" aria-label="Respuesta"></textarea>
-            <button class="boton boton-principal" id="respuesta-enviar">Responder</button>
-          </form>
+          <aside class="chat chat-panel" aria-label="Chat con el cliente">
+            <header class="chat-cabecera">
+              <span class="chat-avatar" aria-hidden="true" id="chat-inicial"></span>
+              <div class="chat-quien">
+                <b id="chat-nombre">Cliente</b>
+                <small>Chat de este guión · lo ve en su link</small>
+              </div>
+            </header>
+            <ul class="chat-mensajes" id="doc-comentarios"></ul>
+            <form class="chat-escribir" id="form-respuesta">
+              <textarea id="respuesta-texto" rows="1" placeholder="Escribe un mensaje al cliente" aria-label="Mensaje al cliente"></textarea>
+              <button class="chat-enviar" id="respuesta-enviar" aria-label="Enviar mensaje">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+              </button>
+            </form>
+          </aside>
         </section>
       </div>
     </main>
@@ -214,12 +224,13 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161122"></script>
-  <script src="js/guion.js?v=202610161122"></script>
-  <script src="js/almacen.js?v=202610161122"></script>
-  <script src="js/sugerencias.js?v=202610161122"></script>
-  <script src="js/diferencias.js?v=202610161122"></script>
-  <script src="js/vista.js?v=202610161122"></script>
-  <script src="js/app.js?v=202610161122"></script>
+  <script src="js/config.js?v=202610161135"></script>
+  <script src="js/guion.js?v=202610161135"></script>
+  <script src="js/almacen.js?v=202610161135"></script>
+  <script src="js/sugerencias.js?v=202610161135"></script>
+  <script src="js/diferencias.js?v=202610161135"></script>
+  <script src="js/chat.js?v=202610161135"></script>
+  <script src="js/vista.js?v=202610161135"></script>
+  <script src="js/app.js?v=202610161135"></script>
 </body>
 </html>

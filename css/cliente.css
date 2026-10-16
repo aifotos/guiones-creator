@@ -58,25 +58,15 @@
 
 .cliente-hoja .lectura { padding: 44px 52px; border: 1px solid var(--linea); }
 
-/* ---------- Comentarios ---------- */
+/* ---------- Chat (columna derecha en computadora, pantalla completa en el celular) ---------- */
 
-.cliente-comentarios {
+.cliente-layout .chat {
   position: sticky;
-  top: 132px;
-  max-height: calc(100vh - 152px);
-  overflow-y: auto;
-  background: var(--papel);
-  border: 1px solid var(--linea);
-  border-radius: 14px;
-  box-shadow: var(--sombra);
-  padding: 18px;
-  margin-top: 0;
+  top: 72px;
+  height: calc(100vh - 92px);
 }
-.cliente-comentarios h2 { font-size: 17px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
-.contador:empty { display: none; }
-.contador { font-size: 12px; background: #EFECE6; color: var(--tinta-suave); border-radius: 999px; padding: 1px 8px; }
-.cliente-comentarios .comentario { max-width: 100%; }
-.cliente-comentarios .comentario-form textarea { font-size: 15px; }
+.chat-cerrar { display: none; }
+.chat-abrir { display: none; }
 
 /* ---------- Textos editables (mismo aspecto que al leer) ---------- */
 
@@ -180,7 +170,61 @@
 
 @media (max-width: 900px) {
   .cliente-layout { grid-template-columns: 1fr; gap: 24px; }
-  .cliente-comentarios { position: static; max-height: none; margin-top: 0; }
+  /* En pantallas estrechas el chat se abre con el botón redondo, a pantalla completa. */
+  .cliente-layout .chat {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    height: auto;
+    border-radius: 0;
+    border: 0;
+    transform: translateY(100%);
+    transition: transform .25s ease;
+  }
+  .cliente-layout .chat.abierto { transform: none; }
+  body.chat-abierto { overflow: hidden; }
+  .chat-cerrar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+  }
+  .chat-cerrar svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .chat-abrir:not([hidden]) {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    right: 18px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    z-index: 50;
+    width: 60px;
+    height: 60px;
+    border: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--aifotos-ambar), #F28C28);
+    color: var(--aifotos-negro);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+    cursor: pointer;
+  }
+  .chat-abrir svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
+  .chat-sin-leer {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--aifotos-granate);
+    color: #fff;
+    font: 700 12px/22px var(--fuente);
+    border: 2px solid #fff;
+  }
 }
 
 @media (max-width: 760px) {

@@ -200,25 +200,18 @@
     caja.append(aviso);
   }
 
-  function pintarComentariosDoc() {
-    const lista = $('doc-comentarios');
-    lista.replaceChildren();
-    for (const c of actual.comentarios || []) {
-      const li = elemento('li', `comentario${c.autor === 'admin' ? ' propio' : ''}`);
-      const cabecera = elemento('div', 'comentario-cabecera');
-      const cliente = Almacen.obtenerCliente(actual.cliente_id);
-      cabecera.append(elemento('b', '', c.autor === 'admin' ? 'Tú' : (cliente?.nombre || 'Cliente')), elemento('small', '', fechaHora(c.creado)));
-      li.append(cabecera);
-      if (c.cita) {
-        const cita = elemento('blockquote', 'cita', `“${c.cita.texto}”`);
-        cita.title = 'Ver la frase en el guión';
-        cita.addEventListener('click', () => verFrase(c));
-        li.append(cita);
-      }
-      li.append(elemento('p', 'comentario-texto', c.texto));
-      lista.append(li);
-    }
-    if (!lista.children.length) lista.append(elemento('li', 'lista-vacia', 'Sin comentarios todavía. El cliente puede dejarlos desde su link.'));
+  function pintarComentariosDoc(opciones = {}) {
+    const cliente = Almacen.obtenerCliente(actual.cliente_id);
+    const nombre = cliente?.nombre || 'Cliente';
+    $('chat-nombre').textContent = nombre;
+    $('chat-inicial').textContent = nombre.trim().charAt(0).toUpperCase();
+    Chat.pintar($('doc-comentarios'), actual.comentarios || [], {
+      yo: 'admin',
+      nombres: { admin: 'aifotos', cliente: nombre },
+      vacio: 'Aún no hay mensajes. Lo que escribas aquí le aparece al cliente en su link.',
+      alTocarCita: verFrase,
+      alFinal: opciones.alFinal,
+    });
   }
 
   function citasDe(g) {
@@ -325,7 +318,7 @@
       $('titulo').value = actual.titulo;
       pintarCabeceraCliente();
       pintarAvisos();
-      pintarComentariosDoc();
+      pintarComentariosDoc({ alFinal: true });
       pintarEditor();
       cambiarModo(modo);
     }
@@ -1063,6 +1056,8 @@
 
   // ---------- Responder al cliente ----------
 
+  const ajustarRespuesta = Chat.prepararCampo($('respuesta-texto'), $('form-respuesta'));
+
   $('form-respuesta').addEventListener('submit', async (e) => {
     e.preventDefault();
     const texto = $('respuesta-texto').value.trim();
@@ -1073,8 +1068,9 @@
     $('respuesta-enviar').disabled = false;
     if (!hecho) return;
     $('respuesta-texto').value = '';
+    ajustarRespuesta();
     marcarVisto(guion);
-    if (guion === actual) pintarComentariosDoc();
+    if (guion === actual) pintarComentariosDoc({ alFinal: true });
   });
 
   // ---------- Ver lo que hizo el cliente sin recargar ----------
@@ -1114,7 +1110,7 @@
       refrescando = false;
     }
   }
-  setInterval(refrescar, 30000);
+  setInterval(refrescar, 20000);
   window.addEventListener('focus', refrescar);
   document.addEventListener('visibilitychange', refrescar);
 

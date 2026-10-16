@@ -1,17 +1,18 @@
 // Página que abre el cliente con su link (cliente.html#<código secreto>).
 // El código va después de "#", así que nunca llega a los servidores de GitHub.
-// Aquí el cliente lee sus guiones, cambia los textos, los aprueba y comenta.
+// Aquí el cliente lee sus guiones, cambia los textos, los aprueba y chatea con aifotos.
 (() => {
   const $ = (id) => document.getElementById(id);
   const codigo = location.hash.slice(1).split('/')[0];
   const base = `${CONFIG.api}/api/c/${encodeURIComponent(codigo)}`;
+  const CADA_CUANTO_REVISAR = 20000; // ms: para ver mensajes nuevos de aifotos sin recargar
 
   let guiones = [];
+  let nombreCliente = '';
   let actual = null;      // guion abierto
   let editando = false;
-  let temporizador = null;
-  let guardando = false;
-  let otraVez = false;    // hubo cambios mientras se guardaba
+  let original = null;    // textos al empezar a editar: { idBloque: texto }
+  let enviando = false;
 
   function el(etiqueta, clase, texto) {
     const nodo = document.createElement(etiqueta);
@@ -21,7 +22,6 @@
   }
 
   const fecha = (ms) => new Date(ms).toLocaleDateString('es', { day: 'numeric', month: 'long' });
-  const fechaHora = (ms) => new Date(ms).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   // Ventanas propias en vez de confirm()/alert(): los navegadores de WhatsApp
   // o Instagram a veces no muestran las del sistema y el botón parece no hacer nada.
@@ -67,7 +67,7 @@
 
   function mostrarLista() {
     $('guion').hidden = true;
-    $('acciones').hidden = true;
+    $('chat-abrir').hidden = true;
     const lista = $('lista');
     lista.replaceChildren(el('h1', 'cliente-titulo', 'Tus guiones'));
     for (const g of guiones) {
@@ -94,9 +94,9 @@
 
   function pintarGuion() {
     ocultarBurbuja();
-    Vista.render(actual, $('lectura'), { editable: editando, alCambiar: guardarLuego, citas: citasDe(actual) });
+    Vista.render(actual, $('lectura'), { editable: editando, alCambiar: alEditar, citas: citasDe(actual) });
     pintarEstado();
-    pintarComentarios();
+    pintarChat();
   }
 
   function pintarEstado() {
@@ -105,72 +105,130 @@
     estado.className = `estado-guion ${actual.aprobado ? 'aprobado' : 'pendiente'}`;
     $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar guión';
     $('editar').classList.toggle('activa', editando);
+    $('descartar').hidden = !editando;
     $('aprobar').hidden = !!actual.aprobado || editando;
     $('ayuda-edicion').hidden = !editando;
     $('pista-seleccion').hidden = editando;
   }
 
-  function mostrarGuion(g) {
-    if (actual && actual !== g && hayCambios()) guardarYa();
+  async function mostrarGuion(g) {
     actual = g;
     editando = false;
+    original = null;
     $('lista').hidden = true;
     $('volver').hidden = guiones.length < 2;
-    $('guardado').textContent = '';
+    estadoEdicion('');
     pintarGuion();
+    pintarChat({ alFinal: true });
     $('guion').hidden = false;
-    $('acciones').hidden = false;
+    $('chat-abrir').hidden = false;
     document.title = `${g.titulo || 'Guión'} · aifotos`;
     window.scrollTo(0, 0);
+    await ofrecerBorrador();
   }
 
-  // ---------- Editar ----------
+  // ---------- Editar: los cambios se envían al pulsar "Listo" ----------
+  // Mientras edita, lo escrito se guarda solo en este navegador (borrador). Así
+  // aifotos recibe la versión final y no cada tecla, y si el cliente cierra la
+  // página sin pulsar "Listo", puede recuperar lo que escribió.
 
-  function hayCambios() { return !!temporizador || guardando; }
+  const claveBorrador = () => `guiones-creator:borrador:${codigo}:${actual.id}`;
 
-  function estadoGuardado(texto, error = false) {
+  function textosDe(g) {
+    return Object.fromEntries(g.bloques.map((b) => [b.id, b.texto]));
+  }
+
+  function hayCambiosSinEnviar() {
+    return editando && original && actual.bloques.some((b) => b.texto !== original[b.id]);
+  }
+
+  function estadoEdicion(texto, error = false) {
     $('guardado').textContent = texto;
     $('guardado').classList.toggle('error', error);
   }
 
-  function guardarLuego() {
-    estadoGuardado('Guardando…');
-    clearTimeout(temporizador);
-    temporizador = setTimeout(guardarYa, 900);
+  let esperaBorrador = null;
+  function alEditar() {
+    estadoEdicion(hayCambiosSinEnviar() ? 'Cambios sin enviar' : '');
+    clearTimeout(esperaBorrador);
+    esperaBorrador = setTimeout(guardarBorrador, 400);
   }
 
-  async function guardarYa() {
-    clearTimeout(temporizador);
-    temporizador = null;
-    if (guardando) { otraVez = true; return; }
-    guardando = true;
-    const guion = actual;
+  function guardarBorrador() {
     try {
-      const nueva = await pedir('PUT', `/guiones/${guion.id}`, {
-        version: guion.version,
-        bloques: guion.bloques.map(({ id, tipo, texto }) => ({ id, tipo, texto })),
+      if (hayCambiosSinEnviar()) localStorage.setItem(claveBorrador(), JSON.stringify({ version: actual.version, textos: textosDe(actual) }));
+      else localStorage.removeItem(claveBorrador());
+    } catch { /* sin almacenamiento: solo se pierde la red de seguridad */ }
+  }
+
+  function borrarBorrador() {
+    clearTimeout(esperaBorrador);
+    try { localStorage.removeItem(claveBorrador()); } catch {}
+  }
+
+  function empezarEdicion() {
+    editando = true;
+    original = textosDe(actual);
+    pintarGuion();
+    $('lectura').querySelector('textarea')?.focus({ preventScroll: true });
+  }
+
+  function terminarEdicion() {
+    editando = false;
+    original = null;
+    borrarBorrador();
+    pintarGuion();
+  }
+
+  // Si quedó un borrador de otra vez (cerró sin pulsar Listo), ofrece recuperarlo.
+  async function ofrecerBorrador() {
+    let borrador = null;
+    try { borrador = JSON.parse(localStorage.getItem(claveBorrador()) || 'null'); } catch {}
+    if (!borrador) return;
+    if (borrador.version !== actual.version) {
+      borrarBorrador();
+      return avisar('Tenías cambios sin enviar, pero aifotos actualizó el guión mientras tanto, así que no se pueden aplicar. Revisa la versión nueva y vuelve a hacer tus cambios.');
+    }
+    const recuperar = await preguntar('Tienes cambios en este guión que no llegaste a enviar. ¿Quieres recuperarlos?', { si: 'Recuperar', no: 'Descartar' });
+    if (!recuperar) return borrarBorrador();
+    original = textosDe(actual);
+    for (const b of actual.bloques) if (b.id in borrador.textos) b.texto = borrador.textos[b.id];
+    editando = true;
+    pintarGuion();
+    estadoEdicion('Cambios sin enviar');
+  }
+
+  async function enviarCambios() {
+    if (enviando) return;
+    if (!hayCambiosSinEnviar()) return terminarEdicion();
+    enviando = true;
+    $('editar').disabled = true;
+    estadoEdicion('Enviando…');
+    try {
+      const nueva = await pedir('PUT', `/guiones/${actual.id}`, {
+        version: actual.version,
+        bloques: actual.bloques.map(({ id, tipo, texto }) => ({ id, tipo, texto })),
       });
-      guion.version = nueva.version;
-      guion.actualizado = nueva.actualizado;
-      const quitoAprobacion = guion.aprobado && !nueva.aprobado;
-      guion.aprobado = nueva.aprobado;
-      if (guion === actual) {
-        estadoGuardado('Guardado ✓');
-        if (quitoAprobacion) pintarEstado();
-      }
+      actual.version = nueva.version;
+      actual.actualizado = nueva.actualizado;
+      actual.aprobado = nueva.aprobado;
+      terminarEdicion();
+      estadoEdicion('Cambios enviados ✓');
     } catch (e) {
       if (e.estado === 409) {
         // aifotos lo cambió mientras tanto: se muestra su versión.
+        editando = false;
+        original = null;
         reemplazar(e.datos.guion);
-        estadoGuardado('');
-        avisar('aifotos acaba de actualizar este guión, así que te mostramos la versión nueva. Si cambiaste algo hace unos segundos, revisa que siga ahí.');
+        estadoEdicion('');
+        avisar('aifotos actualizó este guión mientras lo editabas, así que te mostramos la versión nueva. Revísala y vuelve a hacer tus cambios.');
+        borrarBorrador();
       } else {
-        estadoGuardado('Sin conexión · reintentando…', true);
-        temporizador = setTimeout(guardarYa, 4000);
+        estadoEdicion('No se pudo enviar. Revisa tu conexión y vuelve a pulsar Listo.', true);
       }
     } finally {
-      guardando = false;
-      if (otraVez) { otraVez = false; guardarYa(); }
+      enviando = false;
+      $('editar').disabled = false;
     }
   }
 
@@ -181,23 +239,22 @@
   }
 
   $('editar').addEventListener('click', async () => {
-    if (editando) {
-      editando = false;
-      if (hayCambios()) await guardarYa();
-      pintarGuion();
-      return;
-    }
+    if (editando) return enviarCambios();
     if (actual.aprobado && !(await preguntar('Ya aprobaste este guión. Si cambias algo, tendrás que volver a aprobarlo. ¿Quieres editarlo?', { si: 'Sí, editar' }))) return;
-    editando = true;
-    pintarGuion();
-    $('lectura').querySelector('textarea')?.focus({ preventScroll: true });
+    empezarEdicion();
+  });
+
+  $('descartar').addEventListener('click', async () => {
+    if (hayCambiosSinEnviar() && !(await preguntar('¿Descartar los cambios que hiciste? Volverá a quedar como estaba.', { si: 'Descartar', no: 'Seguir editando' }))) return;
+    for (const b of actual.bloques) if (b.id in original) b.texto = original[b.id];
+    terminarEdicion();
+    estadoEdicion('');
   });
 
   // ---------- Aprobar ----------
 
   $('aprobar').addEventListener('click', async () => {
     if (!(await preguntar('¿Aprobar este guión? aifotos sabrá que estás de acuerdo con el texto.', { si: 'Sí, aprobar' }))) return;
-    if (hayCambios()) await guardarYa();
     try {
       const { aprobado } = await pedir('POST', `/guiones/${actual.id}/aprobar`);
       actual.aprobado = aprobado;
@@ -207,30 +264,50 @@
     }
   });
 
-  // ---------- Comentarios ----------
+  // ---------- Chat ----------
 
-  function pintarComentarios() {
-    const lista = $('comentarios-lista');
-    lista.replaceChildren();
-    const comentarios = actual.comentarios || [];
-    for (const c of comentarios) {
-      const li = el('li', `comentario${c.autor === 'cliente' ? ' propio' : ''}`);
-      li.dataset.id = c.id;
-      const cabecera = el('div', 'comentario-cabecera');
-      cabecera.append(el('b', '', c.autor === 'cliente' ? 'Tú' : 'aifotos'), el('small', '', fechaHora(c.creado)));
-      li.append(cabecera);
-      if (c.cita) {
-        const cita = el('blockquote', 'cita', `“${c.cita.texto}”`);
-        cita.title = 'Ver en el guión';
-        cita.addEventListener('click', () => irA($('lectura').querySelector(`mark[data-comentario="${c.id}"]`)));
-        li.append(cita);
-      }
-      li.append(el('p', 'comentario-texto', c.texto));
-      lista.append(li);
-    }
-    $('contador').textContent = comentarios.length || '';
-    if (!lista.children.length) lista.append(el('li', 'lista-vacia', 'Aún no hay comentarios. Selecciona una frase del guión para comentarla, o escribe aquí abajo.'));
+  const claveLeidos = () => `guiones-creator:leidos:${codigo}:${actual.id}`;
+  const chatVisible = () => window.matchMedia('(min-width: 901px)').matches || $('chat').classList.contains('abierto');
+
+  function pintarChat(opciones = {}) {
+    Chat.pintar($('comentarios-lista'), actual.comentarios || [], {
+      yo: 'cliente',
+      nombres: { admin: 'aifotos', cliente: nombreCliente },
+      vacio: '¡Hola! Escríbenos aquí cualquier duda o cambio que quieras en el guión. También puedes seleccionar una frase del guión para comentarla.',
+      alTocarCita: (c) => { cerrarChatMovil(); irA($('lectura').querySelector(`mark[data-comentario="${c.id}"]`)); },
+      alFinal: opciones.alFinal,
+    });
+    pintarSinLeer();
   }
+
+  // Mensajes de aifotos que el cliente aún no ha visto (el globo rojo del botón del chat).
+  function pintarSinLeer() {
+    let leidos = 0;
+    try { leidos = Number(localStorage.getItem(claveLeidos()) || 0); } catch {}
+    if (chatVisible()) {
+      const ultimo = Math.max(0, ...(actual.comentarios || []).map((c) => c.creado));
+      try { localStorage.setItem(claveLeidos(), String(ultimo)); } catch {}
+      leidos = ultimo;
+    }
+    const sinLeer = (actual.comentarios || []).filter((c) => c.autor === 'admin' && c.creado > leidos).length;
+    $('sin-leer').textContent = sinLeer;
+    $('sin-leer').hidden = !sinLeer;
+  }
+
+  function abrirChatMovil() {
+    $('chat').classList.add('abierto');
+    document.body.classList.add('chat-abierto');
+    pintarChat({ alFinal: true });
+  }
+
+  function cerrarChatMovil() {
+    $('chat').classList.remove('abierto');
+    document.body.classList.remove('chat-abierto');
+  }
+
+  $('chat-abrir').addEventListener('click', abrirChatMovil);
+  $('chat-cerrar').addEventListener('click', cerrarChatMovil);
+  const ajustarCampo = Chat.prepararCampo($('comentario-texto'), $('form-comentario'));
 
   $('form-comentario').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -239,7 +316,11 @@
     $('comentario-enviar').disabled = true;
     const enviado = await comentar({ texto });
     $('comentario-enviar').disabled = false;
-    if (enviado) $('comentario-texto').value = '';
+    if (!enviado) return;
+    $('comentario-texto').value = '';
+    ajustarCampo();
+    pintarChat({ alFinal: true });
+    $('comentario-texto').focus();
   });
 
   async function comentar(datos) {
@@ -248,7 +329,7 @@
       (actual.comentarios ||= []).push(comentario);
       return comentario;
     } catch (err) {
-      avisar(`No se pudo enviar el comentario: ${err.message}`);
+      avisar(`No se pudo enviar el mensaje: ${err.message}`);
       return null;
     }
   }
@@ -262,11 +343,38 @@
     nodo.classList.add('destello');
   }
 
-  // Tocar una frase resaltada lleva a su comentario.
+  // Tocar una frase resaltada lleva a su mensaje en el chat.
   $('lectura').addEventListener('click', (e) => {
     const marca = e.target.closest('mark[data-comentario]');
-    if (marca) irA($('comentarios-lista').querySelector(`[data-id="${marca.dataset.comentario}"]`));
+    if (!marca) return;
+    if (!chatVisible()) abrirChatMovil();
+    irA($('comentarios-lista').querySelector(`[data-id="${marca.dataset.comentario}"] .burbuja`));
   });
+
+  // Mensajes nuevos de aifotos (y cambios suyos en el guion) sin recargar la página.
+  async function revisarNovedades() {
+    if (document.hidden || !actual || enviando) return;
+    try {
+      const datos = await pedir('GET', '');
+      guiones = datos.guiones;
+      const nuevo = guiones.find((g) => g.id === actual.id);
+      if (!nuevo) return;
+      const habiaMensajes = (actual.comentarios || []).length;
+      if (!editando && nuevo.version !== actual.version) {
+        actual = nuevo;
+        pintarGuion();
+      } else {
+        actual.comentarios = nuevo.comentarios;
+        actual.aprobado = editando ? actual.aprobado : nuevo.aprobado;
+        if (!editando) Vista.render(actual, $('lectura'), { citas: citasDe(actual) });
+        pintarEstado();
+        pintarChat();
+      }
+      if ((actual.comentarios || []).length > habiaMensajes && !chatVisible()) pintarSinLeer();
+    } catch { /* sin conexión: se intentará otra vez */ }
+  }
+  setInterval(revisarNovedades, CADA_CUANTO_REVISAR);
+  document.addEventListener('visibilitychange', revisarNovedades);
 
   // ---------- Comentar una frase seleccionada ----------
 
@@ -352,9 +460,9 @@
     });
     if (!comentario) return;
     window.getSelection().removeAllRanges();
-    if (hayCambios()) await guardarYa();
     pintarGuion();
-    irA($('comentarios-lista').querySelector(`[data-id="${comentario.id}"]`));
+    pintarChat({ alFinal: true });
+    irA($('comentarios-lista').querySelector(`[data-id="${comentario.id}"] .burbuja`));
   });
 
   // ---------- Navegación ----------
@@ -373,7 +481,8 @@
     try {
       const datos = await pedir('GET', '');
       guiones = datos.guiones;
-      $('saludo').textContent = datos.cliente.nombre;
+      nombreCliente = datos.cliente.nombre;
+      $('saludo').textContent = nombreCliente;
       $('saludo').hidden = false;
       if (!guiones.length) { $('estado').textContent = 'Todavía no hay guiones aquí.'; return; }
       $('estado').hidden = true;
@@ -387,11 +496,17 @@
     }
   }
 
-  $('volver').addEventListener('click', () => { location.hash = codigo; });
+  $('volver').addEventListener('click', async () => {
+    if (hayCambiosSinEnviar()) {
+      if (!(await preguntar('Tienes cambios sin enviar. Si sales ahora quedarán guardados en este dispositivo para recuperarlos luego. ¿Salir?', { si: 'Salir', no: 'Quedarme' }))) return;
+      guardarBorrador();
+    }
+    location.hash = codigo;
+  });
   window.addEventListener('hashchange', () => { if (guiones.length) enrutar(); });
   window.addEventListener('beforeunload', (e) => {
-    if (!hayCambios()) return;
-    guardarYa();
+    if (!hayCambiosSinEnviar()) return;
+    guardarBorrador();
     e.preventDefault();
     e.returnValue = '';
   });

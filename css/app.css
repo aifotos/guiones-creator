@@ -788,6 +788,175 @@ ins.cambio-nuevo {
 .cambios-info:empty { display: none; }
 .cambios-info { flex-basis: 100%; margin: 0; font-size: 14px; color: var(--tinta-suave); }
 
+/* ---------- Chat (estilo WhatsApp, colores aifotos) ---------- */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--linea);
+  box-shadow: var(--sombra);
+  /* Fondo con puntitos de los colores de la marca, como el papel tapiz de WhatsApp. */
+  background:
+    radial-gradient(circle at 20% 30%, rgba(249, 174, 52, .16) 0 3px, transparent 4px) 0 0 / 46px 46px,
+    radial-gradient(circle at 70% 75%, rgba(101, 138, 131, .16) 0 3px, transparent 4px) 0 0 / 52px 52px,
+    radial-gradient(circle at 45% 55%, rgba(153, 16, 19, .08) 0 2px, transparent 3px) 0 0 / 38px 38px,
+    #F6EFE3;
+}
+.chat-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--aifotos-negro);
+  color: #fff;
+  border-bottom: 3px solid var(--aifotos-ambar);
+}
+.chat-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font: 800 17px var(--fuente);
+  color: #fff;
+  background: conic-gradient(from 200deg, var(--aifotos-salvia), var(--aifotos-ambar), var(--aifotos-granate), var(--aifotos-salvia));
+  box-shadow: inset 0 0 0 3px var(--aifotos-negro);
+}
+.chat-quien { display: grid; line-height: 1.25; }
+.chat-quien b { font-size: 16px; }
+.chat-quien small { font-size: 12px; color: #D6D2CB; }
+
+.chat-mensajes {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat-dia { align-self: center; margin: 8px 0; }
+.chat-dia span {
+  display: inline-block;
+  background: rgba(255, 255, 255, .9);
+  color: var(--tinta-suave);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .06);
+  text-transform: capitalize;
+}
+.chat-vacio {
+  align-self: center;
+  max-width: 85%;
+  margin: auto 0;
+  background: #FFF6E2;
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 14px;
+  color: #6B5A3A;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .06);
+}
+
+.mensaje { display: flex; }
+.mensaje.propio { justify-content: flex-end; }
+.burbuja {
+  position: relative;
+  max-width: 82%;
+  padding: 6px 9px 7px 10px;
+  border-radius: 10px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .1);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.mensaje.ajeno .burbuja { background: #fff; border-top-left-radius: 0; }
+.mensaje.propio .burbuja { background: #FFE2A6; border-top-right-radius: 0; }
+/* Colita de la burbuja, como en WhatsApp */
+.mensaje.ajeno .burbuja::before,
+.mensaje.propio .burbuja::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 10px;
+  height: 12px;
+}
+.mensaje.ajeno .burbuja::before { left: -8px; background: #fff; clip-path: polygon(100% 0, 0 0, 100% 100%); }
+.mensaje.propio .burbuja::before { right: -8px; background: #FFE2A6; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.mensaje-autor { display: block; font-size: 13px; font-weight: 700; color: var(--aifotos-granate); margin-bottom: 2px; }
+.mensaje-texto { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+.mensaje-hora {
+  float: right;
+  margin: 6px 0 -4px 12px;
+  font-size: 11px;
+  color: rgba(0, 0, 0, .45);
+  white-space: nowrap;
+}
+.mensaje-visto { color: var(--aifotos-salvia); font-weight: 700; letter-spacing: -2px; }
+.mensaje-cita {
+  display: grid;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-left: 4px solid var(--aifotos-salvia);
+  border-radius: 6px;
+  background: rgba(101, 138, 131, .12);
+  padding: 5px 8px;
+  margin: 2px 0 5px;
+  cursor: pointer;
+  font: inherit;
+}
+.mensaje.propio .mensaje-cita { background: rgba(153, 16, 19, .07); border-left-color: var(--aifotos-granate); }
+.mensaje-cita-titulo { font-size: 12px; font-weight: 700; color: var(--aifotos-salvia); }
+.mensaje.propio .mensaje-cita-titulo { color: var(--aifotos-granate); }
+.mensaje-cita-texto { font-size: 13px; color: var(--tinta-suave); font-style: italic; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.chat-escribir {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: #EFE7D8;
+}
+.chat-escribir textarea {
+  flex: 1;
+  resize: none;
+  border: 0;
+  border-radius: 22px;
+  padding: 11px 16px;
+  font-size: 16px;
+  line-height: 1.35;
+  max-height: 140px;
+  background: #fff;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .06);
+}
+.chat-escribir textarea:focus { outline: 2px solid var(--aifotos-ambar); }
+.chat-enviar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--aifotos-ambar);
+  color: var(--aifotos-negro);
+  cursor: pointer;
+  transition: transform .1s, background .15s;
+}
+.chat-enviar:hover { background: #F3A21C; }
+.chat-enviar:active { transform: scale(.94); }
+.chat-enviar:disabled { opacity: .5; }
+.chat-enviar svg { width: 22px; height: 22px; fill: currentColor; }
+.mensaje .burbuja.destello { animation: destello 1.4s ease-out; }
+
 /* ---------- Avisos del cliente en tu panel ---------- */
 
 .insignias { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
@@ -801,8 +970,8 @@ ins.cambio-nuevo {
 .aviso-doc { margin: 8px 0 12px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; }
 .aviso-doc.aprobado { background: #E8F1EE; color: #2F5A52; }
 .aviso-doc.editado { background: #FFF3DD; color: #74490A; }
-.doc-comentarios { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--linea); }
-.doc-comentarios h2 { font-size: 18px; margin: 0 0 12px; }
+.doc-comentarios { margin-top: 40px; }
+.chat-panel { height: min(560px, 75vh); }
 
 /* Con poco ancho la barra del guion ocupa dos filas: mejor que no tape el texto. */
 @media (max-width: 1100px) {
