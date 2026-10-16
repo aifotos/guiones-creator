@@ -200,6 +200,32 @@
     caja.append(aviso);
   }
 
+  // Chat flotante con forma de celular, a la derecha; en el celular, a pantalla completa.
+  const chatFlotante = Chat.flotante({
+    telefono: $('telefono'),
+    botonAbrir: $('chat-abrir'),
+    botonesCerrar: [$('chat-cerrar')],
+    clave: 'guiones-creator:chat-panel-minimizado',
+    alAbrir: () => { if (actual) pintarComentariosDoc({ alFinal: true }); },
+  });
+
+  // Mensajes del cliente que no has leído (globo rojo del botón del chat minimizado).
+  // Se cuentan como leídos cuando el chat está abierto a la vista.
+  const CLAVE_LEIDOS = 'guiones-creator:chat-leidos';
+  let leidos = {};
+  try { leidos = JSON.parse(localStorage.getItem(CLAVE_LEIDOS) || '{}'); } catch {}
+
+  function pintarSinLeer() {
+    const mensajes = actual.comentarios || [];
+    if (chatFlotante.visible()) {
+      leidos[actual.id] = Math.max(0, ...mensajes.map((c) => c.creado));
+      try { localStorage.setItem(CLAVE_LEIDOS, JSON.stringify(leidos)); } catch {}
+    }
+    const sinLeer = mensajes.filter((c) => c.autor === 'cliente' && c.creado > (leidos[actual.id] || 0)).length;
+    $('sin-leer').textContent = sinLeer;
+    $('sin-leer').hidden = !sinLeer;
+  }
+
   function pintarComentariosDoc(opciones = {}) {
     const cliente = Almacen.obtenerCliente(actual.cliente_id);
     const nombre = cliente?.nombre || 'Cliente';
@@ -209,9 +235,13 @@
       yo: 'admin',
       nombres: { admin: 'aifotos', cliente: nombre },
       vacio: 'Aún no hay mensajes. Lo que escribas aquí le aparece al cliente en su link.',
-      alTocarCita: verFrase,
+      alTocarCita: (c) => {
+        if (window.innerWidth <= 900) chatFlotante.cerrar(); // en el celular el chat tapa el guion
+        verFrase(c);
+      },
       alFinal: opciones.alFinal,
     });
+    pintarSinLeer();
   }
 
   function citasDe(g) {
@@ -309,16 +339,17 @@
     Menu.ocultar();
     actual = id ? Almacen.obtener(id) : null;
     clienteAbierto = null;
+    if (window.innerWidth <= 900) chatFlotante.cerrar();
     mostrar(actual ? 'documento' : 'vacio');
     estadoGuardado('');
     if (actual) {
       normalizar(actual);
       recordar(`g:${actual.id}`);
-      marcarVisto(actual);
       $('titulo').value = actual.titulo;
       pintarCabeceraCliente();
       pintarAvisos();
       pintarComentariosDoc({ alFinal: true });
+      marcarVisto(actual);
       pintarEditor();
       cambiarModo(modo);
     }
@@ -338,6 +369,7 @@
     Menu.ocultar();
     actual = null;
     clienteAbierto = id;
+    if (window.innerWidth <= 900) chatFlotante.cerrar();
     recordar(`c:${id}`);
     mostrar('cliente');
     pintarPanelCliente();

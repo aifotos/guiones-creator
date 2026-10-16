@@ -7,9 +7,9 @@
   <meta name="referrer" content="no-referrer">
   <title>Tus guiones · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161135">
-  <link rel="stylesheet" href="css/app.css?v=202610161135">
-  <link rel="stylesheet" href="css/cliente.css?v=202610161135">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161219">
+  <link rel="stylesheet" href="css/app.css?v=202610161219">
+  <link rel="stylesheet" href="css/cliente.css?v=202610161219">
 </head>
 <body class="pagina-cliente">
   <header class="barra">
@@ -17,7 +17,7 @@
     <span class="barra-cliente" id="saludo" hidden></span>
   </header>
 
-  <main class="cliente-principal">
+  <main class="cliente-principal con-chat">
     <p class="cliente-estado" id="estado">Cargando tus guiones…</p>
 
     <nav class="cliente-lista" id="lista" hidden aria-label="Tus guiones"></nav>
@@ -52,33 +52,47 @@
           <article class="lectura" id="lectura"></article>
         </section>
 
-        <aside class="chat" id="chat" aria-label="Chat con aifotos">
-          <header class="chat-cabecera">
-            <button class="chat-cerrar" id="chat-cerrar" aria-label="Cerrar el chat">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-            </button>
-            <span class="chat-avatar" aria-hidden="true">ai</span>
-            <div class="chat-quien">
-              <b>aifotos</b>
-              <small>Escríbenos sobre este guión</small>
+        <div class="telefono" id="telefono">
+          <div class="telefono-marco">
+            <span class="telefono-isla" aria-hidden="true"></span>
+            <div class="telefono-pantalla">
+              <div class="telefono-estado" aria-hidden="true">
+                <span class="telefono-hora">9:41</span>
+                <span class="telefono-iconos">
+                  <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+                  <svg viewBox="0 0 26 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="#fff"/><rect x="2" y="2" width="15" height="8" rx="1.5"/><rect x="23" y="4" width="2" height="4" rx="1"/></svg>
+                </span>
+              </div>
+              <aside class="chat" id="chat" aria-label="Chat con aifotos">
+                <header class="chat-cabecera">
+                  <button class="chat-cerrar" id="chat-cerrar" aria-label="Minimizar el chat" title="Minimizar">
+                    <svg class="icono-escritorio" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    <svg class="icono-celular" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+                  </button>
+                  <span class="chat-avatar" aria-hidden="true">ai</span>
+                  <div class="chat-quien">
+                    <b>aifotos</b>
+                    <small>Escríbenos sobre este guión</small>
+                  </div>
+                </header>
+                <ul class="chat-mensajes" id="comentarios-lista"></ul>
+                <form class="chat-escribir" id="form-comentario">
+                  <textarea id="comentario-texto" rows="1" placeholder="Escribe un mensaje" aria-label="Mensaje"></textarea>
+                  <button class="chat-enviar" id="comentario-enviar" aria-label="Enviar mensaje">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+                  </button>
+                </form>
+              </aside>
             </div>
-          </header>
-          <ul class="chat-mensajes" id="comentarios-lista"></ul>
-          <form class="chat-escribir" id="form-comentario">
-            <textarea id="comentario-texto" rows="1" placeholder="Escribe un mensaje" aria-label="Mensaje"></textarea>
-            <button class="chat-enviar" id="comentario-enviar" aria-label="Enviar mensaje">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
-            </button>
-          </form>
-        </aside>
+          </div>
+        </div>
+        <button class="chat-abrir" id="chat-abrir" aria-label="Abrir el chat">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
+          <span class="chat-sin-leer" id="sin-leer" hidden></span>
+        </button>
       </div>
     </div>
   </main>
-
-  <button class="chat-abrir" id="chat-abrir" aria-label="Abrir el chat con aifotos" hidden>
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
-    <span class="chat-sin-leer" id="sin-leer" hidden></span>
-  </button>
 
   <button class="burbuja-seleccion" id="burbuja" hidden>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
@@ -110,11 +124,11 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161135"></script>
-  <script src="js/guion.js?v=202610161135"></script>
-  <script src="js/diferencias.js?v=202610161135"></script>
-  <script src="js/chat.js?v=202610161135"></script>
-  <script src="js/vista.js?v=202610161135"></script>
-  <script src="js/cliente.js?v=202610161135"></script>
+  <script src="js/config.js?v=202610161219"></script>
+  <script src="js/guion.js?v=202610161219"></script>
+  <script src="js/diferencias.js?v=202610161219"></script>
+  <script src="js/chat.js?v=202610161219"></script>
+  <script src="js/vista.js?v=202610161219"></script>
+  <script src="js/cliente.js?v=202610161219"></script>
 </body>
 </html>

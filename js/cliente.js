@@ -67,7 +67,7 @@
 
   function mostrarLista() {
     $('guion').hidden = true;
-    $('chat-abrir').hidden = true;
+    if (window.innerWidth <= 900) chatFlotante.cerrar();
     const lista = $('lista');
     lista.replaceChildren(el('h1', 'cliente-titulo', 'Tus guiones'));
     for (const g of guiones) {
@@ -121,7 +121,6 @@
     pintarGuion();
     pintarChat({ alFinal: true });
     $('guion').hidden = false;
-    $('chat-abrir').hidden = false;
     document.title = `${g.titulo || 'Guión'} · aifotos`;
     window.scrollTo(0, 0);
     await ofrecerBorrador();
@@ -267,14 +266,17 @@
   // ---------- Chat ----------
 
   const claveLeidos = () => `guiones-creator:leidos:${codigo}:${actual.id}`;
-  const chatVisible = () => window.matchMedia('(min-width: 901px)').matches || $('chat').classList.contains('abierto');
+  const chatVisible = () => chatFlotante.visible();
 
   function pintarChat(opciones = {}) {
     Chat.pintar($('comentarios-lista'), actual.comentarios || [], {
       yo: 'cliente',
       nombres: { admin: 'aifotos', cliente: nombreCliente },
       vacio: '¡Hola! Escríbenos aquí cualquier duda o cambio que quieras en el guión. También puedes seleccionar una frase del guión para comentarla.',
-      alTocarCita: (c) => { cerrarChatMovil(); irA($('lectura').querySelector(`mark[data-comentario="${c.id}"]`)); },
+      alTocarCita: (c) => {
+        if (window.innerWidth <= 900) chatFlotante.cerrar(); // en el celular el chat tapa el guion
+        irA($('lectura').querySelector(`mark[data-comentario="${c.id}"]`));
+      },
       alFinal: opciones.alFinal,
     });
     pintarSinLeer();
@@ -294,19 +296,14 @@
     $('sin-leer').hidden = !sinLeer;
   }
 
-  function abrirChatMovil() {
-    $('chat').classList.add('abierto');
-    document.body.classList.add('chat-abierto');
-    pintarChat({ alFinal: true });
-  }
-
-  function cerrarChatMovil() {
-    $('chat').classList.remove('abierto');
-    document.body.classList.remove('chat-abierto');
-  }
-
-  $('chat-abrir').addEventListener('click', abrirChatMovil);
-  $('chat-cerrar').addEventListener('click', cerrarChatMovil);
+  // El chat flota a un lado con forma de celular; en el celular va a pantalla completa.
+  const chatFlotante = Chat.flotante({
+    telefono: $('telefono'),
+    botonAbrir: $('chat-abrir'),
+    botonesCerrar: [$('chat-cerrar')],
+    clave: 'guiones-creator:chat-minimizado',
+    alAbrir: () => { if (actual) pintarChat({ alFinal: true }); },
+  });
   const ajustarCampo = Chat.prepararCampo($('comentario-texto'), $('form-comentario'));
 
   $('form-comentario').addEventListener('submit', async (e) => {
@@ -347,7 +344,7 @@
   $('lectura').addEventListener('click', (e) => {
     const marca = e.target.closest('mark[data-comentario]');
     if (!marca) return;
-    if (!chatVisible()) abrirChatMovil();
+    if (!chatVisible()) chatFlotante.abrir();
     irA($('comentarios-lista').querySelector(`[data-id="${marca.dataset.comentario}"] .burbuja`));
   });
 

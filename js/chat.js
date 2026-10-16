@@ -76,5 +76,45 @@ const Chat = (() => {
     return ajustar;
   }
 
-  return { pintar, prepararCampo };
+  // Ventana de chat flotante con forma de celular. En pantallas grandes empieza
+  // abierta; en pantallas medianas y en el celular empieza cerrada y se abre
+  // con el botón redondo (en el celular, a pantalla completa).
+  // Recuerda si la dejaste abierta o minimizada.
+  function flotante({ telefono, botonAbrir, botonesCerrar, clave, alAbrir }) {
+    const esCelular = () => window.innerWidth <= 900;
+    let minimizado;
+    try {
+      const guardado = localStorage.getItem(clave);
+      minimizado = guardado === null ? window.innerWidth < 1250 : guardado === '1';
+    } catch {
+      minimizado = window.innerWidth < 1250;
+    }
+    if (esCelular()) minimizado = true;
+
+    function aplicar() {
+      telefono.classList.toggle('minimizado', minimizado);
+      document.body.classList.toggle('chat-minimizado', minimizado);
+    }
+
+    function poner(valor) {
+      minimizado = valor;
+      if (!esCelular()) { try { localStorage.setItem(clave, valor ? '1' : '0'); } catch {} }
+      aplicar();
+      if (!valor) alAbrir?.();
+    }
+
+    botonAbrir.addEventListener('click', () => poner(false));
+    for (const boton of botonesCerrar) boton.addEventListener('click', () => poner(true));
+    aplicar();
+
+    // La hora de la barra de estado del celular dibujado es la hora real.
+    const reloj = telefono.querySelector('.telefono-hora');
+    const ponerHora = () => { if (reloj) reloj.textContent = hora(Date.now()); };
+    ponerHora();
+    setInterval(ponerHora, 30000);
+
+    return { abrir: () => poner(false), cerrar: () => poner(true), visible: () => !minimizado };
+  }
+
+  return { pintar, prepararCampo, flotante };
 })();

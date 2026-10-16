@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guiones Creator · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css?v=202610161135">
-  <link rel="stylesheet" href="css/app.css?v=202610161135">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161219">
+  <link rel="stylesheet" href="css/app.css?v=202610161219">
 </head>
 <body>
   <header class="barra">
@@ -44,7 +44,7 @@
       <ul class="lista" id="lista"></ul>
     </aside>
 
-    <main class="principal" id="principal">
+    <main class="principal con-chat" id="principal">
       <div class="vacio" id="vacio" hidden>
         <img src="assets/logo-aifotos.png" alt="" class="vacio-logo">
         <h1>Tu primer guión</h1>
@@ -140,24 +140,44 @@
         </div>
         <article class="lectura" id="modo-leer" hidden></article>
 
-        <section class="doc-comentarios">
-          <aside class="chat chat-panel" aria-label="Chat con el cliente">
-            <header class="chat-cabecera">
-              <span class="chat-avatar" aria-hidden="true" id="chat-inicial"></span>
-              <div class="chat-quien">
-                <b id="chat-nombre">Cliente</b>
-                <small>Chat de este guión · lo ve en su link</small>
+        <div class="telefono" id="telefono">
+          <div class="telefono-marco">
+            <span class="telefono-isla" aria-hidden="true"></span>
+            <div class="telefono-pantalla">
+              <div class="telefono-estado" aria-hidden="true">
+                <span class="telefono-hora">9:41</span>
+                <span class="telefono-iconos">
+                  <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+                  <svg viewBox="0 0 26 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="#fff"/><rect x="2" y="2" width="15" height="8" rx="1.5"/><rect x="23" y="4" width="2" height="4" rx="1"/></svg>
+                </span>
               </div>
-            </header>
-            <ul class="chat-mensajes" id="doc-comentarios"></ul>
-            <form class="chat-escribir" id="form-respuesta">
-              <textarea id="respuesta-texto" rows="1" placeholder="Escribe un mensaje al cliente" aria-label="Mensaje al cliente"></textarea>
-              <button class="chat-enviar" id="respuesta-enviar" aria-label="Enviar mensaje">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
-              </button>
-            </form>
-          </aside>
-        </section>
+              <aside class="chat" aria-label="Chat con el cliente">
+                <header class="chat-cabecera">
+                  <button class="chat-cerrar" id="chat-cerrar" aria-label="Minimizar el chat" title="Minimizar">
+                    <svg class="icono-escritorio" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    <svg class="icono-celular" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+                  </button>
+                  <span class="chat-avatar" aria-hidden="true" id="chat-inicial"></span>
+                  <div class="chat-quien">
+                    <b id="chat-nombre">Cliente</b>
+                    <small>Chat de este guión</small>
+                  </div>
+                </header>
+                <ul class="chat-mensajes" id="doc-comentarios"></ul>
+                <form class="chat-escribir" id="form-respuesta">
+                  <textarea id="respuesta-texto" rows="1" placeholder="Escribe un mensaje" aria-label="Mensaje al cliente"></textarea>
+                  <button class="chat-enviar" id="respuesta-enviar" aria-label="Enviar mensaje">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+                  </button>
+                </form>
+              </aside>
+            </div>
+          </div>
+        </div>
+        <button class="chat-abrir" id="chat-abrir" aria-label="Abrir el chat con el cliente">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
+          <span class="chat-sin-leer" id="sin-leer" hidden></span>
+        </button>
       </div>
     </main>
   </div>
@@ -224,13 +244,13 @@
     </form>
   </dialog>
 
-  <script src="js/config.js?v=202610161135"></script>
-  <script src="js/guion.js?v=202610161135"></script>
-  <script src="js/almacen.js?v=202610161135"></script>
-  <script src="js/sugerencias.js?v=202610161135"></script>
-  <script src="js/diferencias.js?v=202610161135"></script>
-  <script src="js/chat.js?v=202610161135"></script>
-  <script src="js/vista.js?v=202610161135"></script>
-  <script src="js/app.js?v=202610161135"></script>
+  <script src="js/config.js?v=202610161219"></script>
+  <script src="js/guion.js?v=202610161219"></script>
+  <script src="js/almacen.js?v=202610161219"></script>
+  <script src="js/sugerencias.js?v=202610161219"></script>
+  <script src="js/diferencias.js?v=202610161219"></script>
+  <script src="js/chat.js?v=202610161219"></script>
+  <script src="js/vista.js?v=202610161219"></script>
+  <script src="js/app.js?v=202610161219"></script>
 </body>
 </html>
