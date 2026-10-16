@@ -241,7 +241,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- Cliente del guion abierto ---------- */
 
-.doc-cliente { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 14px; }
+.doc-cliente { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; font-size: 14px; }
 .doc-cliente-nombre {
   border: 0;
   background: #EFECE6;
@@ -267,13 +267,24 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- Barra del documento ---------- */
 
 .doc-barra {
+  position: sticky;
+  top: 64px;
+  z-index: 12;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin: 4px 0 20px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
 }
+.doc-barra .doc-estado { margin: 0; flex: 1; }
+.doc-barra .dato { background: #F6F4F0; border-color: transparent; }
+.doc-barra .boton-borrar { border-color: transparent; }
 .doc-acciones { display: flex; gap: 8px; align-items: center; }
 .formato-selector {
   display: inline-flex;
@@ -713,6 +724,34 @@ kbd {
 }
 .comentario-form .boton { justify-self: end; }
 
+/* ---------- Frases comentadas ---------- */
+
+.cita {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--acento);
+  background: #FFF8EC;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+.comentario .cita { font-size: 14px; margin: 6px 0; cursor: pointer; }
+.comentario .cita:hover { background: #FFF1D6; }
+
+mark.marca-comentario {
+  background: #FFE4A8;
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  box-shadow: 0 2px 0 var(--acento);
+  cursor: pointer;
+}
+.destello { animation: destello 1.4s ease-out; }
+@keyframes destello {
+  0%, 30% { box-shadow: 0 0 0 4px var(--acento); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 /* ---------- Avisos del cliente en tu panel ---------- */
 
 .insignias { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
@@ -728,6 +767,12 @@ kbd {
 .aviso-doc.editado { background: #FFF3DD; color: #74490A; }
 .doc-comentarios { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--linea); }
 .doc-comentarios h2 { font-size: 18px; margin: 0 0 12px; }
+
+/* Con poco ancho la barra del guion ocupa dos filas: mejor que no tape el texto. */
+@media (max-width: 1100px) {
+  .doc-barra { position: static; }
+  .formato-selector span, .boton-borrar span { display: none; }
+}
 
 /* ---------- Celular ---------- */
 
@@ -757,6 +802,8 @@ kbd {
   .link-fila .boton { flex: 1; }
   .link-url { flex-basis: 100%; }
   .formato-selector span, .boton-borrar span { display: none; }
+  .doc-barra { position: static; }
+  .doc-barra .doc-estado { order: 3; flex-basis: 100%; }
   .sencillo-texto { padding: 20px; font-size: 17px; }
   [data-formato="cine"] .bloque-personaje { width: 100%; }
   .lectura-parrafo { font-size: 17px; }

@@ -200,10 +200,34 @@
       const cabecera = elemento('div', 'comentario-cabecera');
       const cliente = Almacen.obtenerCliente(actual.cliente_id);
       cabecera.append(elemento('b', '', c.autor === 'admin' ? 'Tú' : (cliente?.nombre || 'Cliente')), elemento('small', '', fechaHora(c.creado)));
-      li.append(cabecera, elemento('p', 'comentario-texto', c.texto));
+      li.append(cabecera);
+      if (c.cita) {
+        const cita = elemento('blockquote', 'cita', `“${c.cita.texto}”`);
+        cita.title = 'Ver la frase en el guión';
+        cita.addEventListener('click', () => verFrase(c));
+        li.append(cita);
+      }
+      li.append(elemento('p', 'comentario-texto', c.texto));
       lista.append(li);
     }
     if (!lista.children.length) lista.append(elemento('li', 'lista-vacia', 'Sin comentarios todavía. El cliente puede dejarlos desde su link.'));
+  }
+
+  function citasDe(g) {
+    return (g.comentarios || []).filter((c) => c.cita).map((c) => ({ id: c.id, bloque: c.cita.bloque, texto: c.cita.texto }));
+  }
+
+  // Muestra la frase comentada: en la vista del cliente sale resaltada; si ya
+  // no está igual (porque se cambió), se señala el bloque donde estaba.
+  function verFrase(c) {
+    cambiarModo('leer');
+    const marca = $('modo-leer').querySelector(`mark[data-comentario="${c.id}"]`)
+      || $('modo-leer').querySelector(`[data-bloque="${c.cita.bloque}"]`);
+    if (!marca) return avisar('Esa frase ya no está en el guión: se cambió después del comentario');
+    marca.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    marca.classList.remove('destello');
+    void marca.offsetWidth;
+    marca.classList.add('destello');
   }
 
   // ---------- Lista lateral: clientes y sus guiones ----------
@@ -793,7 +817,7 @@
     actual.bloques = Guion.convertir(actual.bloques, destino);
     actual.formato = destino;
     pintarEditor();
-    if (modo === 'leer') Vista.render(actual, $('modo-leer'));
+    if (modo === 'leer') Vista.render(actual, $('modo-leer'), { citas: citasDe(actual) });
     guardarYa();
     avisar(`Ahora es un guión ${Guion.FORMATOS[destino].nombre.toLowerCase()}`);
   });
@@ -806,7 +830,7 @@
     document.querySelectorAll('.pestana').forEach((p) => p.classList.toggle('activa', p.dataset.modo === modo));
     $('modo-editar').hidden = modo !== 'editar';
     $('modo-leer').hidden = modo !== 'leer';
-    if (modo === 'leer') Vista.render(actual, $('modo-leer'));
+    if (modo === 'leer') Vista.render(actual, $('modo-leer'), { citas: citasDe(actual) });
     else document.querySelectorAll('#modo-editar textarea').forEach(ajustarAltura);
   }
 

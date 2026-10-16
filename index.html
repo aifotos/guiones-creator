@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guiones Creator · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css">
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161102">
+  <link rel="stylesheet" href="css/app.css?v=202610161102">
 </head>
 <body>
   <header class="barra">
@@ -101,6 +101,11 @@
             <button class="pestana activa" data-modo="editar" role="tab">Editar</button>
             <button class="pestana" data-modo="leer" role="tab">Vista del cliente</button>
           </div>
+          <div class="doc-estado">
+            <span class="dato" id="dato-duracion" title="Calculado a 150 palabras por minuto">—</span>
+            <span class="dato" id="dato-palabras">—</span>
+            <span class="guardado" id="guardado"></span>
+          </div>
           <div class="doc-acciones">
             <label class="formato-selector" title="Tipo de guión">
               <span>Formato</span>
@@ -111,11 +116,6 @@
               <span>Eliminar</span>
             </button>
           </div>
-        </div>
-        <div class="doc-estado">
-          <span class="dato" id="dato-duracion" title="Calculado a 150 palabras por minuto">—</span>
-          <span class="dato" id="dato-palabras">—</span>
-          <span class="guardado" id="guardado"></span>
         </div>
 
         <div id="modo-editar">
@@ -206,11 +206,11 @@
     </form>
   </dialog>
 
-  <script src="js/config.js"></script>
-  <script src="js/guion.js"></script>
-  <script src="js/almacen.js"></script>
-  <script src="js/sugerencias.js"></script>
-  <script src="js/vista.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/config.js?v=202610161102"></script>
+  <script src="js/guion.js?v=202610161102"></script>
+  <script src="js/almacen.js?v=202610161102"></script>
+  <script src="js/sugerencias.js?v=202610161102"></script>
+  <script src="js/vista.js?v=202610161102"></script>
+  <script src="js/app.js?v=202610161102"></script>
 </body>
 </html>

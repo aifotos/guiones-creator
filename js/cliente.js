@@ -50,6 +50,7 @@
 
   function mostrarLista() {
     $('guion').hidden = true;
+    $('acciones').hidden = true;
     const lista = $('lista');
     lista.replaceChildren(el('h1', 'cliente-titulo', 'Tus guiones'));
     for (const g of guiones) {
@@ -70,8 +71,13 @@
 
   // ---------- Un guion ----------
 
+  function citasDe(g) {
+    return (g.comentarios || []).filter((c) => c.cita).map((c) => ({ id: c.id, bloque: c.cita.bloque, texto: c.cita.texto }));
+  }
+
   function pintarGuion() {
-    Vista.render(actual, $('lectura'), { editable: editando, alCambiar: guardarLuego });
+    ocultarBurbuja();
+    Vista.render(actual, $('lectura'), { editable: editando, alCambiar: guardarLuego, citas: citasDe(actual) });
     pintarEstado();
     pintarComentarios();
   }
@@ -80,10 +86,11 @@
     const estado = $('estado-guion');
     estado.textContent = actual.aprobado ? `✓ Aprobaste este guión el ${fecha(actual.aprobado)}` : 'Pendiente de tu revisión';
     estado.className = `estado-guion ${actual.aprobado ? 'aprobado' : 'pendiente'}`;
-    $('editar').textContent = editando ? 'Listo' : 'Editar';
-    $('editar').classList.toggle('boton-principal', editando);
+    $('editar').querySelector('span').textContent = editando ? 'Listo' : 'Editar';
+    $('editar').classList.toggle('activa', editando);
     $('aprobar').hidden = !!actual.aprobado || editando;
     $('ayuda-edicion').hidden = !editando;
+    $('pista-seleccion').hidden = editando;
   }
 
   function mostrarGuion(g) {
@@ -95,6 +102,7 @@
     $('guardado').textContent = '';
     pintarGuion();
     $('guion').hidden = false;
+    $('acciones').hidden = false;
     document.title = `${g.titulo || 'Guión'} · aifotos`;
     window.scrollTo(0, 0);
   }
@@ -187,14 +195,24 @@
   function pintarComentarios() {
     const lista = $('comentarios-lista');
     lista.replaceChildren();
-    for (const c of actual.comentarios || []) {
+    const comentarios = actual.comentarios || [];
+    for (const c of comentarios) {
       const li = el('li', `comentario${c.autor === 'cliente' ? ' propio' : ''}`);
+      li.dataset.id = c.id;
       const cabecera = el('div', 'comentario-cabecera');
       cabecera.append(el('b', '', c.autor === 'cliente' ? 'Tú' : 'aifotos'), el('small', '', fechaHora(c.creado)));
-      li.append(cabecera, el('p', 'comentario-texto', c.texto));
+      li.append(cabecera);
+      if (c.cita) {
+        const cita = el('blockquote', 'cita', `“${c.cita.texto}”`);
+        cita.title = 'Ver en el guión';
+        cita.addEventListener('click', () => irA($('lectura').querySelector(`mark[data-comentario="${c.id}"]`)));
+        li.append(cita);
+      }
+      li.append(el('p', 'comentario-texto', c.texto));
       lista.append(li);
     }
-    if (!lista.children.length) lista.append(el('li', 'lista-vacia', 'Aún no hay comentarios. ¿Algo que quieras cambiar o preguntar?'));
+    $('contador').textContent = comentarios.length || '';
+    if (!lista.children.length) lista.append(el('li', 'lista-vacia', 'Aún no hay comentarios. Selecciona una frase del guión para comentarla, o escribe aquí abajo.'));
   }
 
   $('form-comentario').addEventListener('submit', async (e) => {
@@ -202,16 +220,95 @@
     const texto = $('comentario-texto').value.trim();
     if (!texto) return $('comentario-texto').focus();
     $('comentario-enviar').disabled = true;
+    const enviado = await comentar({ texto });
+    $('comentario-enviar').disabled = false;
+    if (enviado) $('comentario-texto').value = '';
+  });
+
+  async function comentar(datos) {
     try {
-      const comentario = await pedir('POST', `/guiones/${actual.id}/comentarios`, { texto });
+      const comentario = await pedir('POST', `/guiones/${actual.id}/comentarios`, datos);
       (actual.comentarios ||= []).push(comentario);
-      $('comentario-texto').value = '';
-      pintarComentarios();
+      return comentario;
     } catch (err) {
       alert(`No se pudo enviar el comentario: ${err.message}`);
-    } finally {
-      $('comentario-enviar').disabled = false;
+      return null;
     }
+  }
+
+  // Lleva la vista hasta un elemento y lo hace destellar un momento.
+  function irA(nodo) {
+    if (!nodo) return;
+    nodo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    nodo.classList.remove('destello');
+    void nodo.offsetWidth; // reinicia la animación
+    nodo.classList.add('destello');
+  }
+
+  // Tocar una frase resaltada lleva a su comentario.
+  $('lectura').addEventListener('click', (e) => {
+    const marca = e.target.closest('mark[data-comentario]');
+    if (marca) irA($('comentarios-lista').querySelector(`[data-id="${marca.dataset.comentario}"]`));
+  });
+
+  // ---------- Comentar una frase seleccionada ----------
+
+  let seleccion = null;     // { texto, bloque }
+  let esperaSeleccion = null;
+
+  function ocultarBurbuja() {
+    $('burbuja').hidden = true;
+    seleccion = null;
+  }
+
+  function revisarSeleccion() {
+    const sel = window.getSelection();
+    if (editando || !actual || $('guion').hidden || !sel.rangeCount || sel.isCollapsed) return ocultarBurbuja();
+    const texto = sel.toString().trim();
+    const nodo = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
+    if (texto.length < 2 || !$('lectura').contains(nodo)) return ocultarBurbuja();
+    seleccion = { texto: texto.slice(0, 600), bloque: nodo.closest('[data-bloque]')?.dataset.bloque || '' };
+
+    const caja = sel.getRangeAt(0).getBoundingClientRect();
+    const burbuja = $('burbuja');
+    burbuja.hidden = false;
+    const ancho = burbuja.offsetWidth;
+    const izquierda = Math.min(Math.max(caja.left + caja.width / 2 - ancho / 2, 12), document.documentElement.clientWidth - ancho - 12);
+    burbuja.style.left = `${izquierda + window.scrollX}px`;
+    burbuja.style.top = `${caja.bottom + window.scrollY + 10}px`;
+  }
+
+  document.addEventListener('selectionchange', () => {
+    clearTimeout(esperaSeleccion);
+    esperaSeleccion = setTimeout(revisarSeleccion, 120);
+  });
+
+  // pointerdown (no click): en el celular, tocar fuera borra la selección antes del click.
+  $('burbuja').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!seleccion) return;
+    const elegido = seleccion;
+    $('cita-texto').textContent = `“${elegido.texto}”`;
+    $('cita-comentario').value = '';
+    $('dialogo-cita').returnValue = '';
+    $('dialogo-cita').dataset.texto = elegido.texto;
+    $('dialogo-cita').dataset.bloque = elegido.bloque;
+    ocultarBurbuja();
+    $('dialogo-cita').showModal();
+    $('cita-comentario').focus();
+  });
+
+  $('dialogo-cita').addEventListener('close', async () => {
+    const dialogo = $('dialogo-cita');
+    if (dialogo.returnValue !== 'enviar') return;
+    const comentario = await comentar({
+      texto: $('cita-comentario').value.trim(),
+      cita: { texto: dialogo.dataset.texto, bloque: dialogo.dataset.bloque },
+    });
+    if (!comentario) return;
+    window.getSelection().removeAllRanges();
+    pintarGuion();
+    irA($('comentarios-lista').querySelector(`[data-id="${comentario.id}"]`));
   });
 
   // ---------- Navegación ----------
@@ -231,6 +328,7 @@
       const datos = await pedir('GET', '');
       guiones = datos.guiones;
       $('saludo').textContent = datos.cliente.nombre;
+      $('saludo').hidden = false;
       if (!guiones.length) { $('estado').textContent = 'Todavía no hay guiones aquí.'; return; }
       $('estado').hidden = true;
       enrutar();

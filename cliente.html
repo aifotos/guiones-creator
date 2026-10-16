@@ -7,14 +7,14 @@
   <meta name="referrer" content="no-referrer">
   <title>Tus guiones · aifotos</title>
   <link rel="icon" href="assets/logo-aifotos.png">
-  <link rel="stylesheet" href="assets/marca.css">
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/cliente.css">
+  <link rel="stylesheet" href="assets/marca.css?v=202610161102">
+  <link rel="stylesheet" href="css/app.css?v=202610161102">
+  <link rel="stylesheet" href="css/cliente.css?v=202610161102">
 </head>
 <body class="pagina-cliente">
   <header class="barra">
     <img class="barra-logo" src="assets/logo-aifotos.png" alt="aifotos">
-    <span class="barra-nombre" id="saludo">Guiones</span>
+    <span class="barra-cliente" id="saludo" hidden></span>
   </header>
 
   <main class="cliente-principal">
@@ -25,34 +25,63 @@
     <div id="guion" hidden>
       <button class="boton-texto cliente-volver" id="volver" hidden>← Todos tus guiones</button>
 
-      <div class="cliente-barra">
-        <div class="cliente-barra-estado">
-          <span class="estado-guion" id="estado-guion"></span>
-          <span class="guardado" id="guardado" aria-live="polite"></span>
-        </div>
-        <div class="cliente-acciones">
-          <button class="boton" id="editar">Editar</button>
-          <button class="boton boton-principal" id="aprobar">Aprobar guión</button>
-        </div>
+      <div class="cliente-layout">
+        <section class="cliente-hoja">
+          <div class="hoja-estado">
+            <span class="estado-guion" id="estado-guion"></span>
+            <span class="guardado" id="guardado" aria-live="polite"></span>
+          </div>
+          <p class="cliente-nota editar" id="ayuda-edicion" hidden>Toca cualquier texto para cambiarlo. Se guarda solo. Cuando termines, pulsa <b>Listo</b>.</p>
+          <p class="cliente-nota" id="pista-seleccion">Selecciona cualquier frase del guión para comentarla.</p>
+          <article class="lectura" id="lectura"></article>
+        </section>
+
+        <aside class="cliente-comentarios" aria-labelledby="titulo-comentarios">
+          <h2 id="titulo-comentarios">Comentarios <span class="contador" id="contador"></span></h2>
+          <ul class="comentarios-lista" id="comentarios-lista"></ul>
+          <form class="comentario-form" id="form-comentario">
+            <textarea id="comentario-texto" rows="3" placeholder="Escribe un comentario general…" aria-label="Comentario general"></textarea>
+            <button class="boton" id="comentario-enviar">Enviar</button>
+          </form>
+        </aside>
       </div>
-      <p class="cliente-ayuda" id="ayuda-edicion" hidden>Toca cualquier texto para cambiarlo. Los cambios se guardan solos y aifotos los verá. Cuando termines, pulsa <b>Listo</b>.</p>
-
-      <article class="lectura" id="lectura"></article>
-
-      <section class="comentarios">
-        <h2>Comentarios</h2>
-        <ul class="comentarios-lista" id="comentarios-lista"></ul>
-        <form class="comentario-form" id="form-comentario">
-          <textarea id="comentario-texto" rows="3" placeholder="Escribe una sugerencia o una pregunta para aifotos…" aria-label="Comentario"></textarea>
-          <button class="boton boton-principal" id="comentario-enviar">Enviar comentario</button>
-        </form>
-      </section>
     </div>
   </main>
 
-  <script src="js/config.js"></script>
-  <script src="js/guion.js"></script>
-  <script src="js/vista.js"></script>
-  <script src="js/cliente.js"></script>
+  <div class="acciones-flotantes" id="acciones" hidden>
+    <button class="accion" id="editar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>
+      <span>Editar</span>
+    </button>
+    <button class="accion accion-principal" id="aprobar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      <span>Aprobar guión</span>
+    </button>
+  </div>
+
+  <button class="burbuja-seleccion" id="burbuja" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5z"/></svg>
+    Comentar esta frase
+  </button>
+
+  <dialog class="dialogo" id="dialogo-cita">
+    <form method="dialog" class="dialogo-contenido" id="form-cita">
+      <h2>Comentar esta frase</h2>
+      <blockquote class="cita" id="cita-texto"></blockquote>
+      <label class="campo">
+        <span>¿Qué te gustaría cambiar?</span>
+        <textarea id="cita-comentario" rows="4" required placeholder="Ej.: esta frase no me convence, ¿la puedes hacer más directa?"></textarea>
+      </label>
+      <div class="dialogo-acciones">
+        <button class="boton" value="cancelar" formnovalidate>Cancelar</button>
+        <button class="boton boton-principal" value="enviar">Enviar comentario</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/config.js?v=202610161102"></script>
+  <script src="js/guion.js?v=202610161102"></script>
+  <script src="js/vista.js?v=202610161102"></script>
+  <script src="js/cliente.js?v=202610161102"></script>
 </body>
 </html>

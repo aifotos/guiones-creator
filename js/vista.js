@@ -1,8 +1,10 @@
 // Vista de lectura: cómo ve el cliente el guión, según su formato.
 // Con { editable: true } cada texto se convierte en un campo que se puede
 // cambiar en el mismo sitio (la página del cliente lo usa para editar).
+// Con { citas: [{ id, bloque, texto }] } las frases comentadas salen resaltadas.
 const Vista = (() => {
   let edicion = null; // { alCambiar } mientras se pinta en modo edición
+  let citas = [];     // frases comentadas, mientras se pinta para leer
 
   function el(etiqueta, clase, texto) {
     const nodo = document.createElement(etiqueta);
@@ -16,9 +18,35 @@ const Vista = (() => {
     area.style.height = area.scrollHeight + 'px';
   }
 
+  // Envuelve en <mark> cada frase comentada que aparezca en el texto del bloque.
+  function resaltar(nodo, b) {
+    const propias = citas.filter((c) => c.texto && (c.bloque === b.id || !c.bloque));
+    let resto = b.texto;
+    while (propias.length && resto) {
+      let mejor = null;
+      for (const c of propias) {
+        const i = resto.indexOf(c.texto);
+        if (i >= 0 && (!mejor || i < mejor.i)) mejor = { i, c };
+      }
+      if (!mejor) break;
+      if (mejor.i) nodo.append(resto.slice(0, mejor.i));
+      const marca = el('mark', 'marca-comentario', mejor.c.texto);
+      marca.dataset.comentario = mejor.c.id;
+      nodo.append(marca);
+      resto = resto.slice(mejor.i + mejor.c.texto.length);
+      propias.splice(propias.indexOf(mejor.c), 1);
+    }
+    if (resto) nodo.append(resto);
+  }
+
   // El texto de un bloque: fijo para leer, o un campo para editar.
   function texto(b, clase) {
-    if (!edicion) return el('div', clase, b.texto);
+    if (!edicion) {
+      const nodo = el('div', clase);
+      nodo.dataset.bloque = b.id;
+      resaltar(nodo, b);
+      return nodo;
+    }
     const area = el('textarea', `${clase} editable`);
     area.value = b.texto;
     area.rows = 1;
@@ -52,7 +80,12 @@ const Vista = (() => {
     if (edicion) return contenedor.append(texto(guion.bloques[0], 'lectura-parrafos'));
     const contenido = guion.bloques.map((b) => b.texto).join('\n\n').trim();
     if (!contenido) return contenedor.append(vacio());
-    for (const parrafo of contenido.split(/\n\s*\n/)) contenedor.append(el('p', 'lectura-parrafo', parrafo.trim()));
+    for (const parrafo of contenido.split(/\n\s*\n/)) {
+      const p = el('p', 'lectura-parrafo');
+      p.dataset.bloque = guion.bloques[0].id;
+      resaltar(p, { id: guion.bloques[0].id, texto: parrafo.trim() });
+      contenedor.append(p);
+    }
   }
 
   // ---------- Video / redes ----------
@@ -108,10 +141,12 @@ const Vista = (() => {
 
   function render(guion, contenedor, opciones = {}) {
     edicion = opciones.editable ? { alCambiar: opciones.alCambiar || (() => {}) } : null;
+    citas = (opciones.citas || []).filter((c) => c && c.texto);
     contenedor.replaceChildren(cabecera(guion));
     contenedor.className = `lectura lectura-formato-${guion.formato}${edicion ? ' en-edicion' : ''}`;
     ({ sencillo, video, cine }[guion.formato] || video)(guion, contenedor);
     edicion = null;
+    citas = [];
   }
 
   return { render };

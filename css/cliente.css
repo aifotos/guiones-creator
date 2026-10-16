@@ -1,53 +1,94 @@
-/* Página del cliente: solo lectura, pensada primero para el celular. */
+/* Página del cliente: leer, editar, aprobar y comentar. Pensada primero para el celular. */
 
-.cliente-principal { max-width: 800px; margin: 0 auto; padding: 32px 24px 80px; }
+.pagina-cliente { --alto-barra-acciones: 76px; }
+
+.barra-cliente {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 14px;
+  background: #F3F0EA;
+  border-radius: 999px;
+  padding: 5px 14px;
+  max-width: 55vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente-principal {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 24px calc(var(--alto-barra-acciones) + 48px);
+}
 .cliente-estado { text-align: center; color: var(--tinta-suave); padding: 15vh 0; font-size: 17px; }
-.cliente-titulo { font-size: 28px; margin: 0 0 16px; }
-.cliente-lista { display: grid; gap: 10px; }
-.cliente-lista .tarjeta { text-decoration: none; color: inherit; }
-.cliente-lista .insignia { margin-left: 8px; vertical-align: middle; }
 .cliente-volver { margin: 0 0 12px -6px; }
 
-@media (max-width: 760px) {
-  .cliente-principal { padding: 20px 12px 64px; }
+/* ---------- Lista de guiones ---------- */
+
+.cliente-lista { display: grid; gap: 10px; max-width: 720px; margin: 0 auto; }
+.cliente-titulo { font-size: 28px; margin: 0 0 12px; }
+.cliente-lista .tarjeta { text-decoration: none; color: inherit; padding: 18px 20px; }
+.cliente-lista .insignia { margin-left: 8px; vertical-align: middle; }
+
+/* ---------- Dos columnas: guion y comentarios ---------- */
+
+.cliente-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 32px;
+  align-items: start;
 }
 
-/* ---------- Barra de acciones del guion ---------- */
+.hoja-estado { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 32px; margin-bottom: 12px; }
+.estado-guion { font-weight: 600; border-radius: 999px; padding: 5px 14px; font-size: 14px; }
+.estado-guion.aprobado { background: #E8F1EE; color: #2F5A52; }
+.estado-guion.pendiente { background: #FFF3DD; color: #7A4E07; }
+.hoja-estado .guardado { font-size: 14px; }
 
-.cliente-barra {
-  position: sticky;
-  top: 56px;
-  z-index: 10;
+.cliente-nota {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--tinta-suave);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  background: rgba(246, 244, 240, .94);
-  backdrop-filter: blur(6px);
-  padding: 10px 0;
-  margin-bottom: 8px;
+  gap: 8px;
+  align-items: baseline;
 }
-.cliente-barra-estado { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
-.cliente-acciones { display: flex; gap: 8px; }
-.estado-guion { font-weight: 600; border-radius: 999px; padding: 4px 12px; font-size: 14px; }
-.estado-guion.aprobado { background: #E8F1EE; color: #3E6A62; }
-.estado-guion.pendiente { background: #FFF3DD; color: #8A5A08; }
-.cliente-ayuda {
+.cliente-nota::before { content: "💡"; }
+.cliente-nota.editar {
   background: #FFF8EC;
   border: 1px solid #F3DDB3;
+  color: var(--tinta);
   border-radius: 10px;
   padding: 10px 14px;
-  font-size: 15px;
-  margin: 0 0 12px;
 }
+.cliente-nota.editar::before { content: "✏️"; }
 
+.cliente-hoja .lectura { padding: 44px 52px; border: 1px solid var(--linea); }
+
+/* ---------- Comentarios ---------- */
+
+.cliente-comentarios {
+  position: sticky;
+  top: 76px;
+  max-height: calc(100vh - 76px - var(--alto-barra-acciones) - 24px);
+  overflow-y: auto;
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
+  padding: 18px;
+  margin-top: 44px;
+}
+.cliente-comentarios h2 { font-size: 17px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+.contador:empty { display: none; }
+.contador { font-size: 12px; background: #EFECE6; color: var(--tinta-suave); border-radius: 999px; padding: 1px 8px; }
+.cliente-comentarios .comentario { max-width: 100%; }
+.cliente-comentarios .comentario-form textarea { font-size: 15px; }
 
 /* ---------- Textos editables (mismo aspecto que al leer) ---------- */
 
 .lectura textarea.editable {
   display: block;
-  width: 100%;
   font: inherit;
   color: inherit;
   line-height: inherit;
@@ -70,7 +111,94 @@
 .lectura.en-edicion .lectura-bloque, .lectura.en-edicion .cine-dialogo,
 .lectura.en-edicion .cine-accion, .lectura.en-edicion .cine-transicion { margin-bottom: 20px; }
 
+/* ---------- Barra de acciones flotante ---------- */
+
+.acciones-flotantes {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .14);
+}
+.accion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1px solid var(--linea);
+  background: var(--papel);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.accion:active { transform: scale(.97); }
+.accion:hover { background: #F6F4F0; }
+.accion svg, .burbuja-seleccion svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.accion-principal { background: var(--aifotos-negro); border-color: var(--aifotos-negro); color: #fff; }
+.accion-principal:hover { background: #2A2A2A; }
+.accion.activa { background: var(--acento); border-color: var(--acento); color: var(--aifotos-negro); }
+.accion.activa:hover { background: #F3A21C; }
+
+/* ---------- Comentar una frase ---------- */
+
+.burbuja-seleccion {
+  position: absolute;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--aifotos-negro);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+  cursor: pointer;
+}
+.burbuja-seleccion[hidden] { display: none; }
+
+/* ---------- Celular ---------- */
+
+@media (max-width: 900px) {
+  .cliente-layout { grid-template-columns: 1fr; gap: 24px; }
+  .cliente-comentarios { position: static; max-height: none; margin-top: 0; }
+}
+
 @media (max-width: 760px) {
-  .cliente-acciones { width: 100%; }
-  .cliente-acciones .boton { flex: 1; }
+  .pagina-cliente { --alto-barra-acciones: 72px; }
+  .cliente-principal { padding: 16px 12px calc(var(--alto-barra-acciones) + 32px); }
+  .cliente-hoja .lectura { padding: 26px 18px; }
+  .acciones-flotantes {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    border-radius: 0;
+    border-width: 1px 0 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  .accion { flex: 1; padding: 0 12px; }
 }

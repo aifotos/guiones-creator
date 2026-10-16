@@ -16,7 +16,7 @@
 //   GET    /api/c/:token                              su nombre, guiones y comentarios
 //   PUT    /api/c/:token/guiones/:id                  { bloques, version } cambia los textos
 //   POST   /api/c/:token/guiones/:id/aprobar          aprueba el guion
-//   POST   /api/c/:token/guiones/:id/comentarios      { texto }
+//   POST   /api/c/:token/guiones/:id/comentarios      { texto, cita? { bloque, texto } }
 
 const SESION_DIAS = 30;
 const MAX_FALLOS = 8;
@@ -156,7 +156,11 @@ function guionDeFila(f, comentarios = []) {
 // Agrupa los comentarios por guion: { idGuion: [comentario, …] }
 function agruparComentarios(filas) {
   const grupos = {};
-  for (const c of filas) (grupos[c.guion_id] ||= []).push({ id: c.id, autor: c.autor, texto: c.texto, creado: c.creado });
+  for (const c of filas) {
+    let cita = null;
+    try { cita = c.cita ? JSON.parse(c.cita) : null; } catch {}
+    (grupos[c.guion_id] ||= []).push({ id: c.id, autor: c.autor, texto: c.texto, cita, creado: c.creado });
+  }
   return grupos;
 }
 
@@ -268,15 +272,17 @@ async function borrarGuion(env, id) {
 async function comentarAdmin(peticion, env, id) {
   const guion = await env.DB.prepare('SELECT id FROM guiones WHERE id = ?').bind(id).first();
   if (!guion) throw new ErrorHttp(404, 'Ese guion no existe');
-  return json(await guardarComentario(env, id, 'admin', (await leerCuerpo(peticion)).texto), 201);
+  return json(await guardarComentario(env, id, 'admin', await leerCuerpo(peticion)), 201);
 }
 
-async function guardarComentario(env, guionId, autor, texto) {
+async function guardarComentario(env, guionId, autor, { texto, cita } = {}) {
   const limpio = String(texto ?? '').trim().slice(0, 4000);
   if (!limpio) throw new ErrorHttp(400, 'El comentario está vacío');
-  const comentario = { id: nuevoId(), autor, texto: limpio, creado: Date.now() };
-  await env.DB.prepare('INSERT INTO comentarios (id, guion_id, autor, texto, creado) VALUES (?, ?, ?, ?, ?)')
-    .bind(comentario.id, guionId, autor, comentario.texto, comentario.creado).run();
+  const frase = cita && typeof cita === 'object' ? String(cita.texto ?? '').trim().slice(0, 600) : '';
+  const citaLimpia = frase ? { bloque: String(cita.bloque ?? '').slice(0, 64), texto: frase } : null;
+  const comentario = { id: nuevoId(), autor, texto: limpio, cita: citaLimpia, creado: Date.now() };
+  await env.DB.prepare('INSERT INTO comentarios (id, guion_id, autor, texto, cita, creado) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(comentario.id, guionId, autor, comentario.texto, citaLimpia ? JSON.stringify(citaLimpia) : null, comentario.creado).run();
   return comentario;
 }
 
@@ -355,7 +361,7 @@ async function clienteAprueba(env, token, id) {
 async function clienteComenta(peticion, env, token, id) {
   const cliente = await clienteDelLink(env, token);
   await guionDelCliente(env, cliente, id);
-  return json(await guardarComentario(env, id, 'cliente', (await leerCuerpo(peticion)).texto), 201);
+  return json(await guardarComentario(env, id, 'cliente', await leerCuerpo(peticion)), 201);
 }
 
 // ---------- Enrutador ----------
