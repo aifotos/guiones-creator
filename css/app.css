@@ -283,6 +283,26 @@ button, input, select, textarea { font: inherit; color: inherit; }
   box-shadow: var(--sombra);
 }
 .doc-barra .doc-estado { margin: 0; flex: 1; }
+/* La barra mide su propio ancho para decidir si los botones llevan texto o solo icono. */
+.doc-barra { container: barra / inline-size; }
+.doc-barra .doc-acciones {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--linea);
+}
+.doc-barra .doc-acciones .boton-borrar { margin-left: auto; }
+@container barra (max-width: 900px) {
+  .boton-herramienta span, .boton-historial span { display: none; }
+  .boton-herramienta, .boton-historial { padding: 6px 9px; }
+}
+@container barra (max-width: 520px) {
+  .formato-selector > span, .boton-borrar span { display: none; }
+}
 .doc-barra .dato { background: #F6F4F0; border-color: transparent; }
 .doc-barra .boton-borrar { border-color: transparent; }
 .doc-acciones { display: flex; gap: 8px; align-items: center; }
@@ -1160,7 +1180,6 @@ body.chat-minimizado .chat-abrir { display: grid; }
 /* Con poco ancho la barra del guion ocupa dos filas: mejor que no tape el texto. */
 @media (max-width: 1100px) {
   .doc-barra { position: static; }
-  .formato-selector span, .boton-borrar span, .boton-historial span { display: none; }
 }
 
 /* ---------- Celular ---------- */
@@ -1422,9 +1441,6 @@ body.chat-minimizado .chat-abrir { display: grid; }
 /* ---------- Herramientas del guion, ajustes y caducidad ---------- */
 
 .boton-herramienta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-color: transparent; }
-@media (max-width: 1400px) {
-  .boton-herramienta span, .boton-historial span { display: none; }
-}
 .ajustes-seccion { margin: 6px 0 0; font-size: 16px; }
 .ajustes-seccion + .dialogo-ayuda { margin-top: -6px; }
 .borrar-plantilla { justify-self: start; font-size: 13px; }
