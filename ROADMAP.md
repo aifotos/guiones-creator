@@ -79,12 +79,12 @@ siguiente hasta que tú la apruebes.
 - [x] Botón **Eliminar** arriba, junto al formato.
 
 ### Fase 2 — Clientes y links
-- [ ] Base de datos en Cloudflare.
-- [ ] Panel de administrador con tu contraseña.
-- [ ] Crear cliente → la app genera **su link único**.
-- [ ] Botones: **Copiar link** y **Enviar por WhatsApp**.
-- [ ] Lista de clientes con sus guiones.
-- [ ] Desactivar / regenerar un link.
+- [x] Base de datos en Cloudflare.
+- [x] Panel de administrador con tu contraseña.
+- [x] Crear cliente → la app genera **su link único**.
+- [x] Botones: **Copiar link** y **Enviar por WhatsApp**.
+- [x] Lista de clientes con sus guiones.
+- [x] Desactivar / regenerar un link.
 
 **Resultado:** pegas un guión, obtienes el link del cliente.
 
@@ -107,8 +107,8 @@ siguiente hasta que tú la apruebes.
 **Resultado:** nunca pierdes un texto y sabes exactamente qué tocó el cliente.
 
 ### Fase 5 — Publicar en línea
-- [ ] Publicar en GitHub Pages (dirección tipo `aifotos.github.io/guiones-creator`).
-- [ ] Publicación automática: cada mejora que se suba a GitHub queda en línea sola.
+- [x] Publicado en GitHub Pages: https://aifotos.github.io/guiones-creator/ (adelantado a la Fase 2 para que los links funcionen).
+- [x] Publicación automática: cada mejora que se suba a GitHub queda en línea sola.
 - [ ] Prueba real: abrir un link desde tu celular con la Mac apagada.
 - [ ] (Opcional) Dominio propio, por ejemplo `guiones.aifotos.com`.
 
