@@ -2069,3 +2069,7 @@ ins.cambio-nuevo {
 }
 .inicio-seccion-cabecera.entre { flex-wrap: wrap; }
 .inicio-pegar, .inicio-nuevo { white-space: nowrap; }
+
+/* Lateral: "Link y datos" abre la ficha del cliente */
+.guion-fila-ficha .ico { flex: none; color: #8c491a; }
+.guion-fila-ficha .guion-titulo { color: #8c491a; font-weight: 700; }

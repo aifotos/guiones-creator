@@ -364,6 +364,13 @@
 
       if (c.id === activo) {
         const sub = elemento('ul', 'lista-guiones');
+        // Primera fila: la ficha del cliente, con su link para enviárselo.
+        const ficha = elemento('button', `guion-fila guion-fila-ficha${vista === 'cliente' ? ' activo' : ''}`);
+        ficha.append(UI.icono('link', 12), elemento('span', 'guion-titulo', 'Link y datos'));
+        ficha.addEventListener('click', () => abrirCliente(c.id));
+        const liFicha = elemento('li');
+        liFicha.append(ficha);
+        sub.append(liFicha);
         for (const g of guiones) {
           const li = elemento('li');
           const boton = elemento('button', `guion-fila${actual && g.id === actual.id ? ' activo' : ''}`);
@@ -1680,7 +1687,7 @@
     const hecho = await intentar(() => Almacen.editarCliente(c.id, { telefono }), 'No se pudo guardar el WhatsApp');
     if (hecho) { $('cliente-telefono').value = hecho.telefono; avisar(hecho.telefono ? 'WhatsApp del cliente guardado' : 'WhatsApp del cliente quitado'); }
   });
-  $('doc-cliente-nombre').addEventListener('click', irAInicio);
+  $('doc-cliente-nombre').addEventListener('click', () => abrirCliente(actual.cliente_id)); // su ficha, con el link
 
   $('link-activar').addEventListener('click', async () => {
     const c = clientePanel();
