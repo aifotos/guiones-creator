@@ -188,14 +188,16 @@
   function pintarAvisos() {
     const caja = $('doc-avisos');
     caja.replaceChildren();
-    if (actual.aprobado) caja.append(elemento('p', 'aviso-doc aprobado', `✓ El cliente aprobó este guión el ${fechaHora(actual.aprobado)}.`));
-    else if (actual.editado_por === 'cliente') {
-      const aviso = elemento('p', 'aviso-doc editado', `✎ El cliente hizo cambios en este guión el ${fechaHora(actual.actualizado)}. Todavía no lo ha aprobado. `);
+    let aviso = null;
+    if (actual.aprobado) aviso = elemento('p', 'aviso-doc aprobado', `✓ El cliente aprobó este guión el ${fechaHora(actual.aprobado)}. `);
+    else if (actual.editado_por === 'cliente') aviso = elemento('p', 'aviso-doc editado', `✎ El cliente hizo cambios en este guión el ${fechaHora(actual.actualizado)}. Todavía no lo ha aprobado. `);
+    if (!aviso) return;
+    if (actual.editado_por === 'cliente') {
       const ver = elemento('button', 'boton-texto', 'Ver qué cambió');
       ver.addEventListener('click', () => { verCambios = true; cambiarModo('leer'); });
       aviso.append(ver);
-      caja.append(aviso);
     }
+    caja.append(aviso);
   }
 
   function pintarComentariosDoc() {
@@ -903,8 +905,14 @@
     let cambios = null;
     try { cambios = await cambiosDe(guion); } catch { /* sin conexión: solo la vista normal */ }
     if (guion !== actual || modo !== 'leer') return;
-    $('cambios-barra').hidden = !cambios;
-    if (!cambios) return;
+    $('cambios-barra').hidden = !cambios && !verCambios;
+    if (!cambios) {
+      if (verCambios) {
+        $('ver-cambios').checked = false;
+        $('cambios-info').textContent = 'Todavía no hay cambios del cliente que comparar: los cambios que haga desde ahora se marcarán aquí (los de antes de esta función no se guardaron).';
+      }
+      return;
+    }
     $('ver-cambios').checked = verCambios;
     $('cambios-info').textContent = !verCambios ? ''
       : cambios.vigente

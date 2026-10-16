@@ -267,10 +267,11 @@ async function guardarGuion(peticion, env, id) {
   return json(guionDeFila(fila, await comentariosDe(env, id)));
 }
 
-// Guarda una copia del guion tal como está, firmada por quien lo dejó así.
-function copiaDe(env, fila) {
+// Guarda una copia del guion tal como está, firmada por quien lo dejó así
+// (o como 'admin' si es el punto de partida con el que se comparará al cliente).
+function copiaDe(env, fila, autor = fila.editado_por || 'admin') {
   return env.DB.prepare('INSERT INTO versiones (id, guion_id, version, autor, titulo, formato, contenido, creado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(nuevoId(), fila.id, fila.version, fila.editado_por || 'admin', fila.titulo, fila.formato, fila.contenido, fila.actualizado);
+    .bind(nuevoId(), fila.id, fila.version, autor, fila.titulo, fila.formato, fila.contenido, fila.actualizado);
 }
 
 // Lo último que cambió el cliente: "antes" es como lo dejaste tú y "despues" como lo dejó él.
@@ -355,7 +356,10 @@ async function clienteEdita(peticion, env, token, id) {
   if (Number(d.version) !== fila.version) {
     return json({ error: 'Este guion cambió en otro sitio', guion: paraCliente(guionDeFila(fila, await comentariosDe(env, id))) }, 409);
   }
-  if (fila.editado_por !== 'cliente') await copiaDe(env, fila).run();
+  // Antes de que el cliente cambie algo hace falta la versión con la que comparar:
+  // la tuya, o, si el guion es de antes de existir las copias, cómo estaba hasta ahora.
+  const hayPuntoDePartida = await env.DB.prepare("SELECT 1 FROM versiones WHERE guion_id = ? AND autor = 'admin' LIMIT 1").bind(id).first();
+  if (fila.editado_por !== 'cliente' || !hayPuntoDePartida) await copiaDe(env, fila, 'admin').run();
   const nuevos = new Map(limpiarBloques(d.bloques || []).map((b) => [b.id, b.texto]));
   const contenido = JSON.parse(fila.contenido || '{}');
   contenido.bloques = (contenido.bloques || []).map((b) => (nuevos.has(b.id) ? { ...b, texto: nuevos.get(b.id) } : b));
