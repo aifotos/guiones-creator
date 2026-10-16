@@ -55,10 +55,10 @@ Cada fase termina con algo que puedes **abrir y probar**. No se pasa a la
 siguiente hasta que tú la apruebes.
 
 ### Fase 0 — Preparación (lo que necesito de ti: ~10 minutos)
-- [ ] Crear una cuenta gratis en Cloudflare (te guío paso a paso).
-- [ ] Repositorio propio para la app (`aifotos/guiones-creator`) en vez de
+- [x] Cuenta gratis en Cloudflare creada y conectada.
+- [x] Repositorio propio para la app (`aifotos/guiones-creator`) en vez de
       usar el de toda tu carpeta personal, para que solo se publique la app.
-- [ ] Elegir el nombre/colores de marca (aifotos) para la app.
+- [x] Marca aifotos: logo y colores tomados de FacturaPro (`assets/`).
 
 **Resultado:** todo listo para empezar a construir.
 

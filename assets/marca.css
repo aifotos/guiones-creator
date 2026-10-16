@@ -1,0 +1,8 @@
+/* Colores de marca aifotos — tomados del logo (assets/logo-aifotos.png) */
+:root {
+  --aifotos-negro:   #000000; /* letras "ai fotos" y triángulo */
+  --aifotos-ambar:   #F9AE34; /* borde inferior del triángulo */
+  --aifotos-salvia:  #658A83; /* borde superior del triángulo */
+  --aifotos-granate: #991013; /* borde derecho del triángulo */
+  --aifotos-blanco:  #FFFFFF;
+}
