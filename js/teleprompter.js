@@ -120,7 +120,14 @@ const Teleprompter = (() => {
         <i class="tp-indicador"></i>
       </div>
     </section>
-    <div class="tp-modal" hidden role="alertdialog" aria-modal="true"><div class="tp-tarjeta"><h2></h2><p></p><button>Entendido</button></div></div>`;
+    <div class="tp-modal" hidden role="alertdialog" aria-modal="true"><div class="tp-tarjeta"><h2></h2><p></p><button>Entendido</button></div></div>
+    <div class="tp-idiomas" hidden role="dialog" aria-modal="true" aria-label="Idioma de la voz">
+      <div class="tp-tarjeta">
+        <h2>¿En qué idioma vas a hablar?</h2>
+        <div class="tp-lista-idiomas">${VozTeleprompter.IDIOMAS.map(([v, n]) => `<button data-idioma="${v}">${n}</button>`).join('')}</div>
+        <button class="tp-cancelar">Cancelar</button>
+      </div>
+    </div>`;
 
   // ---------- Estado de la sesión abierta ----------
   let caja = null, q = null, guionId = '';
@@ -216,8 +223,10 @@ const Teleprompter = (() => {
     i = Math.min(i, palabras.length - 1);
     return Math.max(0, alturas[i] - guiaArriba - guiaAlto / 2);
   }
+  // Leyendo con voz, la franja se adelanta una palabra: la línea siguiente empieza a subir
+  // mientras dices la última de la actual, y así compensa lo que tarda el reconocedor.
   function seguirCursor(alInstante) {
-    const y = yPara(cursor);
+    const y = yPara(leyendo && modo === 'voz' ? cursor + 1 : cursor);
     if (alInstante) { destinoY = null; irA(y); } else destinoY = y;
   }
   function palabraEnLaGuia() {
@@ -377,8 +386,14 @@ const Teleprompter = (() => {
   }
 
   async function iniciar() {
-    if (leyendo) return;
+    if (leyendo || alElegir) return;
     if (!palabras.length) { aviso('Este guión todavía no tiene texto para decir.'); return; }
+    // La primera vez que lee con voz, preguntar el idioma.
+    if (A.voz && VozTeleprompter.disponible && !A.idiomaElegido) {
+      const idioma = await elegirIdioma();
+      if (!idioma) return;
+      ponerIdioma(idioma);
+    }
     if (cursor >= palabras.length) ponerCursor(0, false);
     modo = A.voz && VozTeleprompter.disponible ? 'voz' : 'auto';
     if (A.voz && !VozTeleprompter.disponible) aviso('Este navegador no reconoce voz. Usa Chrome, Edge o Safari. Ahora va en modo automático.', 4000);
@@ -433,12 +448,46 @@ const Teleprompter = (() => {
     if (leyendo && modo === 'auto') { destinoY = null; autoY = 0; irA(0); }
   }
   const pxPorSegundo = () => A.velocidad * 0.08 * A.tamano * A.interlineado;
-  function alternarVoz() {
-    A.voz = A.voz ? 0 : 1;
+  // Al activar la voz se pregunta el idioma en el momento, sin pasar por los ajustes.
+  async function alternarVoz() {
+    if (alElegir) return;
+    if (A.voz) {
+      A.voz = 0;
+      guardarAjustes();
+      aplicarAjustes();
+      aviso('Voz desactivada: el texto subirá a velocidad constante');
+      return;
+    }
+    if (VozTeleprompter.disponible) {
+      const idioma = await elegirIdioma();
+      if (!idioma) return;
+      ponerIdioma(idioma);
+    }
+    A.voz = 1;
     guardarAjustes();
     aplicarAjustes();
-    aviso(A.voz ? (VozTeleprompter.disponible ? 'Seguimiento por voz activado' : 'Este navegador no reconoce voz; se usará el modo automático')
-      : 'Voz desactivada: el texto subirá a velocidad constante');
+    aviso(VozTeleprompter.disponible ? `Seguimiento por voz en ${nombreIdioma(A.idioma)}` : 'Este navegador no reconoce voz; se usará el modo automático');
+  }
+
+  // ---------- Elegir el idioma de la voz ----------
+
+  let alElegir = null;
+  const nombreIdioma = (codigo) => (VozTeleprompter.IDIOMAS.find(([v]) => v === codigo) || [, codigo])[1];
+  // Devuelve el idioma elegido, o null si se cancela.
+  function elegirIdioma() {
+    return new Promise((listo) => {
+      const ventana = q('.tp-idiomas');
+      ventana.querySelectorAll('[data-idioma]').forEach((b) => b.classList.toggle('on', b.dataset.idioma === A.idioma));
+      ventana.hidden = false;
+      alElegir = (idioma) => { ventana.hidden = true; alElegir = null; listo(idioma); };
+      (ventana.querySelector('.on') || ventana.querySelector('[data-idioma]')).focus();
+    });
+  }
+  function ponerIdioma(idioma) {
+    A.idioma = idioma;
+    A.idiomaElegido = 1;
+    guardarAjustes();
+    sincronizarControles();
   }
   function cambiarTamano(d) { A.tamano = Math.max(16, Math.min(140, A.tamano + d)); guardarAjustes(); aplicarAjustes(); }
 
@@ -488,7 +537,7 @@ const Teleprompter = (() => {
     } else if (destinoY != null) {
       const c = rollo.scrollTop, d = destinoY - c;
       if (Math.abs(d) <= 1) { irA(destinoY); destinoY = null; }
-      else { let paso = d * Math.min(1, dt * 7); if (Math.abs(paso) < 1) paso = Math.sign(d); irA(c + paso); }
+      else { let paso = d * Math.min(1, dt * 12); if (Math.abs(paso) < 1) paso = Math.sign(d); irA(c + paso); }
     }
     const nivel = mic ? mic.leer(dt) : 0;
     fase += dt * (leyendo ? 7 : 2);
@@ -501,6 +550,7 @@ const Teleprompter = (() => {
 
   function teclas(e) {
     e.stopPropagation(); // que no lleguen a los atajos de la app de atrás
+    if (alElegir) { if (e.key === 'Escape') { e.preventDefault(); alElegir(null); } return; }
     if (!q('.tp-modal').hidden) {
       if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); q('.tp-modal').hidden = true; }
       return;
@@ -553,7 +603,12 @@ const Teleprompter = (() => {
       guardarAjustes();
       aplicarAjustes();
     }));
-    q('select[data-k=idioma]').addEventListener('change', (e) => { A.idioma = e.target.value; guardarAjustes(); });
+    q('select[data-k=idioma]').addEventListener('change', (e) => ponerIdioma(e.target.value));
+    q('.tp-idiomas').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-idioma]');
+      if (b) alElegir?.(b.dataset.idioma);
+      else if (e.target.closest('.tp-cancelar') || e.target === e.currentTarget) alElegir?.(null);
+    });
     q('.tp-modal button').addEventListener('click', () => { q('.tp-modal').hidden = true; });
 
     // Tocar una palabra: seguir desde ahí.
@@ -578,6 +633,7 @@ const Teleprompter = (() => {
 
   function cerrar() {
     if (!caja) return;
+    alElegir = null;
     detener();
     cancelAnimationFrame(animacion);
     observador?.disconnect();
