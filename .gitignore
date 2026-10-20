@@ -10,3 +10,6 @@ dist/
 # Archivos de diseño del rediseño (referencia local, no van a la web pública)
 design_handoff_guiones_rediseno/
 *.zip
+
+# Prompter original (referencia local del teleprompter, tiene su propio repo)
+prompter-web/

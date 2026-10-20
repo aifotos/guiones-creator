@@ -118,7 +118,7 @@ siguiente hasta que tú la apruebes.
 
 ### Fase 6 — Extras (cuando lo básico esté sólido)
 - [x] Exportar guión a **PDF** con tu marca.
-- [x] Modo **teleprompter** (texto grande que avanza solo) para grabar.
+- [x] Modo **teleprompter** con seguimiento por voz (el de Prompt+, portado de prompter-web): avanza mientras lees; sin voz, sube solo.
 - [x] Plantillas de guión (reel, anuncio, testimonio, tutorial, corto…) y guardar las tuyas.
 - [x] Copia de seguridad descargable de todos los guiones.
 - [x] Caducidad de links (que dejen de funcionar tras X días).
