@@ -25,6 +25,7 @@ const Teleprompter = (() => {
     voz: '<svg viewBox="0 0 24 24"><path d="M9 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zm7.76-9.64-1.68 1.69a3.4 3.4 0 0 1 0 3.89l1.68 1.69c2.02-2.02 2.02-5.07 0-7.27zM20.07 2l-1.63 1.63c2.77 3.02 2.77 7.56 0 10.74L20.07 16c3.9-3.89 3.91-9.95 0-14z"/></svg>',
     play: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" stroke="#69c559" stroke-width="3.5"/><path d="M19 15.5v17l13.5-8.5z" fill="#69c559"/></svg>',
     pantalla: '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
+    reducir: '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
     salir: '<svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
     atras: '<svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6 8.5 6V6l-8.5 6z"/></svg>',
     adelante: '<svg viewBox="0 0 24 24"><path d="m4 18 8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>',
@@ -308,12 +309,34 @@ const Teleprompter = (() => {
 
   // ---------- Pantalla completa, avisos ----------
 
-  const puedePantalla = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  // En el iPhone, Safari no deja poner una página a pantalla completa (solo los videos):
+  // ahí el botón explica qué hacer en su lugar.
+  const puedePantalla = !!(document.fullscreenEnabled ?? document.webkitFullscreenEnabled);
+  const tactil = matchMedia('(pointer: coarse)').matches;
+  let avisoNotificaciones = false;
+  const enPantallaCompleta = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+  function entrarPantalla() {
+    if (!puedePantalla || enPantallaCompleta()) return;
+    const pedir = caja.requestFullscreen || caja.webkitRequestFullscreen;
+    Promise.resolve(pedir.call(caja, { navigationUI: 'hide' })).catch(() => {});
+  }
   function pantallaCompleta() {
-    if (!puedePantalla) return;
-    const d = document;
-    if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
-    else { const p = (caja.requestFullscreen || caja.webkitRequestFullscreen).call(caja); p?.catch?.(() => {}); }
+    if (!puedePantalla) return modal('En el iPhone no hay pantalla completa', 'Safari no deja poner una página a pantalla completa en el iPhone, solo los videos. Para leer sin distracciones, activa «No molestar» en el Centro de control (así no te llegan notificaciones) y gira el teléfono en horizontal, que deja la barra de Safari más pequeña.');
+    if (enPantallaCompleta()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
+    else entrarPantalla();
+  }
+  // El botón dice si entra o sale, según cómo esté ahora.
+  function alCambiarPantalla() {
+    if (!caja) return;
+    const dentro = enPantallaCompleta();
+    q('.tp-boton-pantalla').innerHTML = `${dentro ? SVG.reducir : SVG.pantalla}<span>${dentro ? 'Reducir' : 'Pantalla'}</span>`;
+    q('.tp-fila-pantalla .tp-btn').textContent = dentro ? 'Salir de pantalla completa' : 'Pantalla completa';
+    // La pantalla completa tapa las barras, pero no frena las notificaciones del teléfono.
+    if (dentro && tactil && !avisoNotificaciones) {
+      avisoNotificaciones = true;
+      aviso('Consejo: activa «No molestar» en el teléfono para que no aparezcan notificaciones.', 4500);
+    }
   }
 
   function aviso(mensaje, ms = 2400) {
@@ -640,6 +663,8 @@ const Teleprompter = (() => {
     clearTimeout(avisoTimer);
     document.removeEventListener('keydown', teclas, true);
     document.removeEventListener('visibilitychange', alVolver);
+    document.removeEventListener('fullscreenchange', alCambiarPantalla);
+    document.removeEventListener('webkitfullscreenchange', alCambiarPantalla);
     if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
     caja.remove();
     caja = null;
@@ -656,11 +681,6 @@ const Teleprompter = (() => {
     q = (selector) => caja.querySelector(selector);
     escenario = q('.tp-escenario'); espejo = q('.tp-espejo'); guia = q('.tp-guia');
     rollo = q('.tp-rollo'); texto = q('.tp-texto'); columna = q('.tp-columna');
-    if (!puedePantalla) {
-      q('.tp-fila-pantalla').hidden = true;
-      q('.tp-boton-pantalla').style.visibility = 'hidden';
-    }
-
     guionId = guion.id || '';
     palabras = []; cursor = 0; leidasHasta = 0; destinoY = null; leyendo = false; contando = false;
     pintarContenido(guion);
@@ -669,6 +689,8 @@ const Teleprompter = (() => {
     document.body.append(caja);
     document.addEventListener('keydown', teclas, true);
     document.addEventListener('visibilitychange', alVolver);
+    document.addEventListener('fullscreenchange', alCambiarPantalla);
+    document.addEventListener('webkitfullscreenchange', alCambiarPantalla);
 
     aplicarAjustes();
     cursor = posicionGuardada();
@@ -679,7 +701,7 @@ const Teleprompter = (() => {
     document.fonts?.ready.then(() => { if (caja) maquetarSinPerderse(); });
     ultimo = performance.now();
     animacion = requestAnimationFrame(cuadro);
-    caja.requestFullscreen?.().catch(() => {});
+    entrarPantalla();
   }
 
   return { abrir };

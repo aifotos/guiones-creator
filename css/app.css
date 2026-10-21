@@ -1518,7 +1518,8 @@ ins.cambio-nuevo {
   --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
   --tp-fuente: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
-  position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; overflow: hidden;
+  /* clip y no hidden: que enfocar algo de la hoja escondida no desplace todo el teleprompter */
+  position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; overflow: hidden; overflow: clip;
   background: #000; color: #fff; font-family: var(--tp-fuente); color-scheme: dark; overscroll-behavior: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
